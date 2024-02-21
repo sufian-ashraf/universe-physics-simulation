@@ -3,7 +3,7 @@
 		{
 			"label": "Build",
 			"type": "shell",
-			"command": "C:\\MinGW\\bin\\gcc.exe",
+			"command": "C:\\MinGW\\bin\\g++.exe",
 			"args": [
 				"${file}",
 				"-o",

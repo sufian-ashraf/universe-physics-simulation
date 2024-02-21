@@ -2,8 +2,7 @@
 
 #include "object.h"
 
-int *body_count_ptr = (int *)malloc(sizeof(int));
-*body_count_ptr = 2;
+int body_count = 2;
 Body **bodies = (Body **)create_default(body_count);
 
 int x = 300, y = 300, r = 20;
@@ -15,7 +14,7 @@ int x = 300, y = 300, r = 20;
 void iDraw()
 {
 	// place your drawing codes here
-	simulate_motion(bodies, body_count_ptr);
+	simulate_motion(bodies, body_count);
 	iClear();
 	// iSetColor(20, 200, 200);
 	// iFilledCircle(x, y, r);
@@ -92,15 +91,18 @@ int main()
 	// place your own initialization codes here.
 
 	// bodies[0] is earth
-	bodies[0]->x = 30 * AU;
-	// sun
-	bodies[1]->color[0] = 255;
-	bodies[1]->color[1] = 255;
-	bodies[1]->color[2] = 0;
-	bodies[1]->mass = 2e30;
-	bodies[1]->velocity.x = 0;
-	bodies[1]->velocity.y = 0;
+	// bodies[0]->x = 30 * AU;
+	// bodies[0]->y = 35 * AU;
 
+	// sun
+	// bodies[1]->x = 35 * AU;
+	// bodies[1]->y = 35 * AU;
+	// bodies[1]->color[0] = 255;
+	// bodies[1]->color[1] = 255;
+	// bodies[1]->color[2] = 0;
+	// // bodies[1]->mass = 2e30;
+	// bodies[1]->velocity = {0, 0};
+	// bodies[1]->acceleration = {0, 0};
 	iInitialize(WIDTH, HEIGHT, "demo");
 	return 0;
 }

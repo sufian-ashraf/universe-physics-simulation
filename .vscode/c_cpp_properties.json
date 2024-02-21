@@ -10,7 +10,15 @@
       "cppStandard": "${default}",
       "intelliSenseMode": "windows-gcc-x64",
       "compilerArgs": [
-        ""
+        "${file}",
+        "-o",
+        "${fileDirname}\\${fileBasenameNoExtension}",
+        "-lopengl32",
+        "-lglu32",
+        "-lglut32",
+        "-lglaux",
+        "-lstdc++",
+        "-w"
       ]
     }
   ],

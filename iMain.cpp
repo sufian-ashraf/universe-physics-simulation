@@ -92,17 +92,13 @@ int main()
 
 	// bodies[0] is earth
 	bodies[0]->x = 30 * AU;
-	// bodies[0]->y = 35 * AU;
 
 	// sun
-	// bodies[1]->x = 35 * AU;
-	// bodies[1]->y = 35 * AU;
-	// bodies[1]->color[0] = 255;
-	// bodies[1]->color[1] = 255;
-	// bodies[1]->color[2] = 0;
-	// // bodies[1]->mass = 2e30;
-	// bodies[1]->velocity = {0, 0};
-	// bodies[1]->acceleration = {0, 0};
+	bodies[1]->color[0] = 255;
+	bodies[1]->color[1] = 255;
+	bodies[1]->color[2] = 0;
+	bodies[1]->velocity = {-5e3, -1e4};
+
 	iInitialize(WIDTH, HEIGHT, "demo");
 	return 0;
 }

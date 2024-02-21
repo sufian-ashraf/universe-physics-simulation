@@ -14,8 +14,8 @@ int x = 300, y = 300, r = 20;
 void iDraw()
 {
 	// place your drawing codes here
-	simulate_motion(bodies, body_count);
 	iClear();
+	simulate_motion(bodies, body_count);
 	// iSetColor(20, 200, 200);
 	// iFilledCircle(x, y, r);
 	// iFilledRectangle(10, 30, 20, 20);
@@ -91,7 +91,7 @@ int main()
 	// place your own initialization codes here.
 
 	// bodies[0] is earth
-	// bodies[0]->x = 30 * AU;
+	bodies[0]->x = 30 * AU;
 	// bodies[0]->y = 35 * AU;
 
 	// sun

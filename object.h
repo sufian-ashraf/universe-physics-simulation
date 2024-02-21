@@ -9,13 +9,13 @@ in draw_body() function orbit drawing part, i.e. iLine() isn't working as desire
 */
 #define WIDTH 800
 #define HEIGHT 800
-#define AU 1.496 * 100000000000                 // 1 Astronomical Unit = 1.496e11 meter
-#define G 6.673 / 100000000000                 // Universal Gravitational Constant
-#define SPACE_SCALE (80.0 / 7) / AU // 800 Pixels = 70 AU
-#define MASS_SCALE 1.67 / 100000000000
+#define AU 1.496e11                // 1 Astronomical Unit = 1.496e11 meter
+#define G 6.673e-11                 // Universal Gravitational Constant
+#define SPACE_SCALE 7.63942e-11 // 800 Pixels = 70 AU
+#define MASS_SCALE 1.6667e-25
 #define G_SCALED ((G / MASS_SCALE) * SPACE_SCALE) / SPACE_SCALE   // after scaling the big G constant is G * SPACE_SCALE^2 / MASS_SCALE
-#define MAX_DISTANCE 70       // UNIT AU
-#define MAX_VELOCITY 3 * 100000000      // UNIT: m/s
+#define MAX_DISTANCE 70      // UNIT AU
+#define MAX_VELOCITY 3e8      // UNIT: m/s
 #define MAX_ACCELARATION 1000 // Unit: m/s^2. max_accelaration it can handle is around AU / (10 * TIMESTEP^2)
 
 typedef double pos_type;
@@ -46,12 +46,12 @@ Body *create_body(void)
     body->x = (MAX_DISTANCE / 2) * AU;
     printf("%lf %lf\n", body->x, (MAX_DISTANCE / 2) * AU);
     body->y = (MAX_DISTANCE / 2) * AU;
-    body->radius = 6.96 * 100000000;
+    body->radius = 6.96e8;
     body->color[0] = 0;
     body->color[1] = 0;
     body->color[2] = 255;
-    body->mass = 2 * 100000000000;
-    body->velocity = {0, 100};
+    body->mass = 2e30;
+    body->velocity = {0, 1e4};
     body->acceleration = {0, 0};
     return body;
 }
@@ -107,11 +107,15 @@ void update_position(int self_index, Body **bodies, int body_count)
 
 void draw_body(Body *body)
 {
-    pos_type x = body->x * SPACE_SCALE;
-    pos_type y = body->y * SPACE_SCALE;
+    int x = body->x * SPACE_SCALE;
+    int y = body->y * SPACE_SCALE;
+    int radius = body->radius * SPACE_SCALE * 300;
+    printf("x=%d, y=%d, r=%d, (%d, %d, %d) \n", x, y, radius, body->color[0], body->color[1], body->color[2]);
+    // pos_type x = body->x * SPACE_SCALE;
+    // pos_type y = body->y * SPACE_SCALE;
 
     iSetColor(body->color[0], body->color[1], body->color[2]);
-    iFilledCircle(x, y, body->radius * SPACE_SCALE);
+    iFilledCircle(x, y, radius);
 
     // isn't working as expecting
     // no orbit is being drawn
@@ -124,6 +128,6 @@ void simulate_motion(Body **bodies, int body_count)
     {
         // update_position(i, bodies, body_count);
         draw_body(bodies[i]);
-        printf("Body %d: x=%LfAU, y=%LfAU, v_x=%Lfm/s, v_y=%Lfm/s, a_x=%Lf, a_y=%Lf\n", i, bodies[i]->x, bodies[i]->y, bodies[i]->velocity.x, bodies[i]->velocity.y, bodies[i]->acceleration.x, bodies[i]->acceleration.y);
+        // printf("Body %d: x=%lfm, y=%lfm, v_x=%lfm/s, v_y=%lfm/s, a_x=%lf, a_y=%lf\n", i, bodies[i]->x, bodies[i]->y, bodies[i]->velocity.x, bodies[i]->velocity.y, bodies[i]->acceleration.x, bodies[i]->acceleration.y);
     }
 }

@@ -4,7 +4,6 @@
 
 int body_count = 2;
 Body **bodies = (Body **)create_default(body_count);
-
 int x = 300, y = 300, r = 20;
 /*
 	function iDraw() is called again and again by the system.
@@ -15,7 +14,7 @@ void iDraw()
 {
 	// place your drawing codes here
 	iClear();
-	simulate_motion(bodies, body_count);
+	simulate_motion(&bodies, &body_count);
 	// iSetColor(20, 200, 200);
 	// iFilledCircle(x, y, r);
 	// iFilledRectangle(10, 30, 20, 20);
@@ -92,13 +91,18 @@ int main()
 
 	// bodies[0] is earth
 	bodies[0]->x = 30 * AU;
-
+	bodies[0]->y = 30 * AU;
+	bodies[0]->velocity = {-1e4, 0};
 	// sun
+	bodies[1]->x = 40 * AU;
 	bodies[1]->color[0] = 255;
 	bodies[1]->color[1] = 255;
 	bodies[1]->color[2] = 0;
-	bodies[1]->velocity = {-5e3, -1e4};
+	bodies[1]->velocity = {0, 1e4};
 
+	append_body(create_body(), &bodies, &body_count);
+
+	bodies[2]->velocity = {0, 0};
 	iInitialize(WIDTH, HEIGHT, "demo");
 	return 0;
 }

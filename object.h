@@ -3,27 +3,26 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
-
 /*
 in draw_body() function orbit drawing part, i.e. iLine() isn't working as desired
 */
 #define WIDTH 800
 #define HEIGHT 800
-#define AU 1.496e11             // 1 Astronomical Unit = 1.496e11 meter
-#define G 6.673e-11             // Universal Gravitational Constant
-#define MAX_DISTANCE 70 * AU    // UNIT meter
-#define MAX_VELOCITY 5e5        // UNIT: meter/second
-#define SPACE_SCALE 7.63942e-11 // 800 Pixels = 70 AU
-#define RADIUS_SCALE 300
-#define COLLISION_FACTOR RADIUS_SCALE / 3.5
+#define AU 1.496e11                                        // 1 Astronomical Unit = 1.496e11 meter
+#define G 6.673e-11                                        // Universal Gravitational Constant
+#define MAX_DISTANCE 70 * AU                               // UNIT meter
+#define MAX_VELOCITY 5e5                                   // UNIT: meter/second
+#define SPACE_SCALE (WIDTH / 100.0) / (MAX_DISTANCE / 100) // 800 Pixels = 70 AU
+#define RADIUS_SCALE 200
+#define COLLISION_FACTOR 1
 #define MASS_SCALE 1.6667e-25
-#define G_SCALED 2.33665e-6 // after scaling the big G constant is G * SPACE_SCALE^2 / MASS_SCALE
-
+#define G_SCALED ((G / (MASS_SCALE * 1e4)) * SPACE_SCALE * 100) * SPACE_SCALE * 100 // after scaling the big G constant is G * SPACE_SCALE^2 / MASS_SCALE
+#define PI 3.141592
 typedef double pos_type;
 typedef double lld;
 
 lld TIMESTEP = 86400; // 1 hour
-
+bool is_symmetric = false;
 typedef struct Pair
 {
     pos_type x;
@@ -45,7 +44,7 @@ Body *create_body(void)
 {
     Body *body = (Body *)malloc(sizeof(Body));
     body->x = (MAX_DISTANCE / 2);
-    printf("%lf %lf\n", body->x, (MAX_DISTANCE / 2));
+    // printf("%lf %lf\n", body->x, (MAX_DISTANCE / 2));
     body->y = (MAX_DISTANCE / 2);
     body->radius = 6.96e8;
     body->color[0] = 0;
@@ -62,13 +61,71 @@ pos_type pair_magnitude(Pair p)
     return sqrt(pow(p.x, 2) + pow(p.y, 2));
 }
 
-Body **create_default(int body_count)
+Body **create_bodies(int body_count)
 {
     Body **bodies = (Body **)malloc(body_count * sizeof(*bodies));
     for (int i = 0; i < body_count; i++)
     {
         bodies[i] = create_body();
     }
+    return bodies;
+}
+
+Body **create_solar_system(int *body_count_ptr)
+{
+    int total_bodies = 10; // 8 planets, sun and moon
+    *body_count_ptr = total_bodies;
+    pos_type center_x = MAX_DISTANCE / 2;
+    pos_type center_y = MAX_DISTANCE / 2;
+    Body **bodies = create_bodies(total_bodies);
+
+    *bodies[0] = {.x = center_x + 0.000 * AU, .y = center_y, .radius = 6.96e8, .color = {255, 165, 0}, .mass = 1.9885e31, .velocity = {.x = 0, .y = 0}, .acceleration = {.x = 0, .y = 0}};       // Sun
+    *bodies[1] = {.x = center_x - 1.387 * AU, .y = center_y, .radius = 2.495e7, .color = {170,170,170}, .mass = 0.33e25, .velocity = {.x = 0, .y = 47.4e3}, .acceleration = {.x = 0, .y = 0}};     // Mercury
+    *bodies[2] = {.x = center_x + 1.723 * AU, .y = center_y, .radius = 6.052e7, .color = {255,224,130}, .mass = 4.87e25, .velocity = {.x = 0, .y = 35e3}, .acceleration = {.x = 0, .y = 0}};       // Venus
+    *bodies[3] = {.x = center_x - 2.000 * AU, .y = center_y, .radius = 6.378e7, .color = {0, 128, 255}, .mass = 5.97e25, .velocity = {.x = 0, .y = 29.8e3}, .acceleration = {.x = 0, .y = 0}};     // Earth
+    *bodies[4] = {.x = center_x - 2.019 * AU, .y = center_y, .radius = 1.7375e7, .color = {200, 200, 200}, .mass = 7.3e23, .velocity = {.x = 0, .y = 1e3}, .acceleration = {.x = 0, .y = 0}};    // Moon
+    *bodies[5] = {.x = center_x + 2.523 * AU, .y = center_y, .radius = 3.396e7, .color = {204,51,0}, .mass = 0.642e25, .velocity = {.x = 0, .y = 24.1e3}, .acceleration = {.x = 0, .y = 0}};  // Mars
+    *bodies[6] = {.x = center_x - 6.205 * AU, .y = center_y, .radius = 71.492e7, .color = {231,204,161}, .mass = 1.898e28, .velocity = {.x = 0, .y = 13.1e3}, .acceleration = {.x = 0, .y = 0}};   // Jupiter
+    *bodies[7] = {.x = center_x + 10.582 * AU, .y = center_y, .radius = 60.268e7, .color = {255, 206,123}, .mass = 2.68e27, .velocity = {.x = 0, .y = 9.7e3}, .acceleration = {.x = 0, .y = 0}}; // Saturn
+    *bodies[8] = {.x = center_x - 20.20 * AU, .y = center_y, .radius = 25.559e7, .color = {144,238,144}, .mass = 8.68e26, .velocity = {.x = 0, .y = 6.8e3}, .acceleration = {.x = 0, .y = 0}}; // Uranus
+    *bodies[9] = {.x = center_x + 31.05 * AU, .y = center_y, .radius = 24.764e7, .color = {0, 102, 204}, .mass = 1.02e27, .velocity = {.x = 0, .y = 5.4e3}, .acceleration = {.x = 0, .y = 0}}; // Neptune
+
+    return bodies;
+}
+
+Body **create_symmetric_system(int body_count)
+{
+    Body **bodies = create_bodies(body_count);
+    pos_type vertex_count = body_count - 1;
+    srand(time(NULL));
+    pos_type center_x = MAX_DISTANCE / 2;
+    pos_type center_y = MAX_DISTANCE / 2;
+    pos_type common_mass = 1 / MASS_SCALE;
+    pos_type distance = 10 * AU; // from centroid center
+
+    pos_type vel_factor = 0;
+    for (int del_i = 1; del_i < vertex_count; del_i++)
+    {
+        pos_type c_val = cos((PI * del_i) / vertex_count);
+        bool flag = (2 * del_i == vertex_count);
+        if (flag == true)
+        {
+            vel_factor += 1;
+            continue;
+        }
+        vel_factor += pow(1 / c_val, 2);
+    }
+
+    pos_type common_vel = (1e4 / vertex_count) + sqrt((G * common_mass * vel_factor) / (4 * distance));
+
+    for (int i = 0; i < vertex_count; i++)
+    {
+        pos_type normal_x = cos((2 * PI * i) / vertex_count);
+        pos_type normal_y = sin((2 * PI * i) / vertex_count);
+        *bodies[i] = {.x = center_x + normal_x * distance, .y = center_y + normal_y * distance, .radius = 1.4 * AU, .color = {rand() % 255, rand() % 255, rand() % 255}, .mass = common_mass, .velocity = {.x = -normal_y * common_vel, .y = normal_x * common_vel}, .acceleration = {.x = 0, .y = 0}}; // Sun
+    }
+
+    *bodies[body_count - 1] = {.x = center_x, .y = center_y, .radius = 1.4 * AU, .color = {rand() % 255, rand() % 255, rand() % 255}, .mass = 2e30, .velocity = {.x = 0, .y = 0}, .acceleration = {.x = 0, .y = 0}}; // Sun
 
     return bodies;
 }
@@ -95,7 +152,7 @@ void append_body(Body *new_body, Body ***bodies_ptr, int *body_count_ptr)
     *body_count_ptr += 1;
 
     if (*bodies_ptr == NULL)
-        *bodies_ptr = create_default(*body_count_ptr);
+        *bodies_ptr = create_bodies(*body_count_ptr);
     Body **bodies = *bodies_ptr;
 
     Body **tmp = (Body **)realloc(bodies, (*body_count_ptr) * sizeof(*bodies));
@@ -184,7 +241,7 @@ void calculate_accelaration(Body *self, Body other)
     self->acceleration = {accelaration * cos(theta), accelaration * sin(theta)};
 }
 
-void handle_collision(Body *body1, Body *body2, Body ***bodies_ptr, int *body_count_ptr)
+Body *handle_collision(Body *body1, Body *body2, Body ***bodies_ptr, int *body_count_ptr)
 {
     Body *merged_body = create_body();
     // Calculate the total mass of the two bodies
@@ -204,29 +261,32 @@ void handle_collision(Body *body1, Body *body2, Body ***bodies_ptr, int *body_co
 
     delete_body(body1, bodies_ptr, body_count_ptr);
     delete_body(body2, bodies_ptr, body_count_ptr);
-    append_body(merged_body, bodies_ptr, body_count_ptr);
+    return merged_body;
 }
 
 // boundary collision just makes thing jarring. it's not pleasant or soothing
-void handle_out_of_bounds(Body *body, Body **bodies, int *body_count_ptr)
+void handle_out_of_bounds(Body *body, Body ***bodies_ptr, int *body_count_ptr)
 {
     pos_type max_bound = 1.414 * MAX_DISTANCE;
     if (body->y > max_bound || body->y < max_bound / 100 || body->x > max_bound || body->x < max_bound / 100)
-        delete_body(body, &bodies, body_count_ptr);
+        delete_body(body, bodies_ptr, body_count_ptr);
 }
 
-void update_position(int self_index, Body ***bodies_ptr, int *body_count_ptr)
+void update_position(Body *body, Body ***bodies_ptr, int *body_count_ptr)
 {
     Body **bodies = *bodies_ptr;
+    int self_index = find_body_index(*body, *bodies_ptr, *body_count_ptr);
     for (int i = 0; i < *body_count_ptr; i++)
     {
         // pos_type distance = sqrt(pow((bodies[i]->x - bodies[self_index]->x) * SPACE_SCALE, 2) + pow((bodies[i]->y - bodies[self_index]->y) * SPACE_SCALE, 2)) / SPACE_SCALE;
         if (i == self_index)
         {
         }
-        else if (check_collision(*bodies[self_index], *bodies[i]))
+        else if (is_symmetric == false && check_collision(*bodies[self_index], *bodies[i]))
         {
-            handle_collision(bodies[self_index], bodies[i], bodies_ptr, body_count_ptr);
+            body = handle_collision(bodies[self_index], bodies[i], bodies_ptr, body_count_ptr);
+            self_index = find_body_index(*body, *bodies_ptr, *body_count_ptr);
+            append_body(body, bodies_ptr, body_count_ptr);
             bodies = *bodies_ptr;
             i--;
             continue;
@@ -242,6 +302,7 @@ void update_position(int self_index, Body ***bodies_ptr, int *body_count_ptr)
 
         bodies[self_index]->x += bodies[self_index]->velocity.x * TIMESTEP;
         bodies[self_index]->y += bodies[self_index]->velocity.y * TIMESTEP;
+        handle_out_of_bounds(bodies[self_index], bodies_ptr, body_count_ptr);
     }
 }
 
@@ -250,6 +311,7 @@ void draw_body(Body *body)
     int x = body->x * SPACE_SCALE;
     int y = body->y * SPACE_SCALE;
     int radius = body->radius * SPACE_SCALE * RADIUS_SCALE;
+
     // printf("x=%d, y=%d, r=%d, (%d, %d, %d) \n", x, y, radius, body->color[0], body->color[1], body->color[2]);
 
     iSetColor(body->color[0], body->color[1], body->color[2]);
@@ -265,9 +327,9 @@ void simulate_motion(Body ***bodies_ptr, int *body_count_ptr)
     Body **bodies = *bodies_ptr;
     for (int i = 0; i < *body_count_ptr; i++)
     {
-        update_position(i, bodies_ptr, body_count_ptr);
+        update_position(bodies[i], bodies_ptr, body_count_ptr);
         bodies = *bodies_ptr;
         draw_body(bodies[i]);
-        printf("Body %d: x=%lfAU, y=%lfAU, v_x=%lfm/s, v_y=%lfm/s, a_x=%lf, a_y=%lf\n", i, bodies[i]->x / AU, bodies[i]->y / AU, bodies[i]->velocity.x, bodies[i]->velocity.y, bodies[i]->acceleration.x, bodies[i]->acceleration.y);
+        // printf("Body %d: x=%lfAU, y=%lfAU, v_x=%lfm/s, v_y=%lfm/s, a_x=%lf, a_y=%lf\n", i, bodies[i]->x / AU, bodies[i]->y / AU, bodies[i]->velocity.x, bodies[i]->velocity.y, bodies[i]->acceleration.x, bodies[i]->acceleration.y);
     }
 }

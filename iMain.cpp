@@ -8,7 +8,8 @@ int str_index = 0;
 // Body **bodies = create_solar_system(&body_count);
 Body **bodies = create_symmetric_system(body_count);
 Button *custom_btn = create_button();
-Button *default_button = create_button();
+Button *default_btn = create_button();
+Button *count_btn = create_button();
 int x = 300, y = 300, r = 20;
 /*
 	function iDraw() is called again and again by the system.
@@ -40,7 +41,8 @@ void iDraw()
 	// iFilledRectangle(10, 30, 20, 20);
 	// iSetColor(20, 200, 0);
 	draw_button(*custom_btn);
-	draw_button(*default_button);
+	draw_button(*default_btn);
+	draw_button(*count_btn);
 }
 
 /*
@@ -88,9 +90,9 @@ void iMouse(int button, int state, int mx, int my)
 		// y -= 10;
 	}
 
-	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && check_button_clicked(*default_button, mx, my))
+	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && check_button_clicked(*default_btn, mx, my))
 	{
-		default_button->selected = true;
+		default_btn->selected = true;
 		Body *body = create_body();
 		body->x = (rand() % WIDTH) / SPACE_SCALE;
 		body->y = (rand() % WIDTH) / SPACE_SCALE;
@@ -103,16 +105,18 @@ void iMouse(int button, int state, int mx, int my)
 		}
 
 		append_body(body, &bodies, &body_count);
-		// running = false;
-		printf("Button selection successful.\n");
 	}
 
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && check_button_clicked(*custom_btn, mx, my))
 	{
 		custom_btn->selected = true;
-		// running = false;
-		printf("Button selection successful.\n");
 	}
+
+	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && check_button_clicked(*count_btn, mx, my))
+	{
+		count_btn->selected = true;
+	}
+
 }
 
 /*
@@ -137,82 +141,13 @@ void iKeyboard(unsigned char key)
 	{
 		running = true;
 	}
-
-	// default creation button
-	if (isdigit(key) || key == 13 || key == 8 || key == ',')
+	if (isdigit(key) == false && key != 13 && key != 8 && key != ',')
 	{
-	}
-	else
-	{
-		// iText(custom_btn->position.x, custom_btn->position.y - 3 * custom_btn->dimensions.y, "Please enter digits, comma or newline.\n");
 		printf("Please enter digits, comma or newline.\n");
 		return;
 	}
-
-	// this part handles string tokenization and custom planet creation
-	// 13 is ascii value for \n
-	if (key == 13 && custom_btn->selected)
-	{
-		char *tmp = (char *)malloc(sizeof(custom_btn->str));
-		strcpy(tmp, custom_btn->str);
-		char *token = strtok(tmp, ",");
-
-		// there are 12 properties of a Body but accelaration and selection is always zero by default. just added random color
-		int property_count = 6;
-		double value_holder[property_count] = {0};
-		int i = 0;
-		while (token != NULL)
-		{
-			// printf("%s ", token);
-			sscanf(token, "%lf", &value_holder[i]);
-			i++;
-			token = strtok(NULL, ",");
-		}
-		free(tmp);
-
-		for (int i = 0; i < property_count; i++)
-		{
-			printf("%lf ", value_holder[i]);
-		}
-		Body *body = create_body();
-		body->x = value_holder[0] / SPACE_SCALE;
-		// printf("%lf\n", body->x);
-		body->y = value_holder[1] / SPACE_SCALE;
-		// printf("%lf\n", body->y);
-		body->mass = value_holder[2] / MASS_SCALE;
-		body->radius = value_holder[3] * RADIUS_SCALE;
-		body->velocity.x = value_holder[4] * 1e3;
-		body->velocity.y = value_holder[5] * 1e3;
-
-		// printf("Body %d: radius=%lf, x=%lfAU, y=%lfAU, v_x=%lfm/s, v_y=%lfm/s, a_x=%lf, a_y=%lf\n", i, bodies[i]->radius, bodies[i]->x / AU, bodies[i]->y / AU, bodies[i]->velocity.x, bodies[i]->velocity.y, bodies[i]->acceleration.x, bodies[i]->acceleration.y);
-
-		append_body(body, &bodies, &body_count);
-		printf("\nSuccess\n");
-
-		free(custom_btn->str);
-		custom_btn->str = (char *)calloc(strlen("Create Custom Planet") + 1, sizeof(char));
-		strcpy(custom_btn->str, "Create Custom Planet");
-		custom_btn->selected = false;
-		running = true;
-	}
-
-	if (custom_btn->selected)
-	{
-		if (strcmp(custom_btn->str, "Create Custom Planet") == 0)
-			strcpy(custom_btn->str, "");
-		custom_btn->str = char_cat(custom_btn->str, key);
-		// printf("%c\n", key);
-		// running = false;
-	}
-
-	int length = strlen(custom_btn->str);
-
-	// 8 is ascii code for \b
-	if (key == 8 && length > 0 && custom_btn->selected)
-	{
-		snprintf(custom_btn->str, length - 1, "%s", custom_btn->str);
-	}
-	// place your codes for other keys here
+	handle_custom_button(&custom_btn, key, &bodies, &body_count, &running);
+	handle_count_button(&count_btn, key, &bodies, &body_count);
 }
 
 /*
@@ -241,8 +176,11 @@ int main()
 	is_symmetric = true;
 	running = true;
 
-	default_button->position.y -= default_button->dimensions.y;
-	strcpy(default_button->str, "Create Planet");
+	default_btn->position.y -= default_btn->dimensions.y;
+	strcpy(default_btn->str, "Create Planet");
+
+	count_btn->position.y -= 2 * count_btn->dimensions.y;
+	strcpy(count_btn->str, "Create Symmetric System");
 	iInitialize(WIDTH, HEIGHT, "Universe Sandbox");
 	return 0;
 }

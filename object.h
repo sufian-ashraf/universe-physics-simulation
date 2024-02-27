@@ -15,7 +15,7 @@ in draw_body() function orbit drawing part, i.e. iLine() isn't working as desire
 #define MAX_DISTANCE (70 * AU)                               // UNIT meter
 #define MAX_VELOCITY 5e5                                     // UNIT: meter/second
 #define SPACE_SCALE ((WIDTH / 100.0) / (MAX_DISTANCE / 100)) // 800 Pixels = 70 AU
-#define RADIUS_SCALE 1.4 * AU // to set sun's radius equal to 16 pixel
+#define RADIUS_SCALE 1.4 * AU                                // to set sun's radius equal to 16 pixel
 #define DRAW_SCALE 1
 #define COLLISION_FACTOR 1
 #define MASS_SCALE 1.6667e-25
@@ -26,7 +26,7 @@ typedef double pos_type;
 typedef double lld;
 
 lld TIMESTEP = 86400; // 1 hour
-bool is_symmetric = false;
+bool collision_on = false;
 bool running = true;
 
 typedef struct Pair
@@ -290,7 +290,7 @@ void update_position(Body *body, Body ***bodies_ptr, int *body_count_ptr)
         if (i == self_index)
         {
         }
-        else if (is_symmetric == false && check_collision(*bodies[self_index], *bodies[i]))
+        else if (collision_on == false && check_collision(*bodies[self_index], *bodies[i]))
         {
             body = handle_collision(bodies[self_index], bodies[i], bodies_ptr, body_count_ptr);
             self_index = find_body_index(*body, *bodies_ptr, *body_count_ptr);
@@ -322,7 +322,7 @@ void draw_body(Body *body)
     int x = body->x * SPACE_SCALE;
     int y = body->y * SPACE_SCALE;
     int radius = body->radius * SPACE_SCALE * DRAW_SCALE;
-    if (is_symmetric == false)
+    if (collision_on == false)
         radius *= 300;
     double theta = atan2(body->velocity.y, body->velocity.x);
     int end_x = x + 2 * radius * cos(theta);
@@ -342,7 +342,7 @@ void simulate_motion(Body ***bodies_ptr, int *body_count_ptr)
 {
     Body **bodies = *bodies_ptr;
     for (int i = 0; i < *body_count_ptr; i++)
-    {   
+    {
         update_position(bodies[i], bodies_ptr, body_count_ptr);
         bodies = *bodies_ptr;
         draw_body(bodies[i]);
@@ -400,6 +400,7 @@ Button *create_button(void)
 
 void delete_button(Button *button)
 {
+    free(button->str);
     free(button);
 }
 
@@ -423,4 +424,108 @@ bool check_button_clicked(Button button, int mx, int my)
         return true;
     }
     return false;
+}
+
+void handle_custom_button(Button **btn_ptr, unsigned char key, Body ***bodies_ptr, int *body_count_ptr, bool *running_ptr)
+{
+    Button *custom_btn = *btn_ptr;
+    if (custom_btn->selected == false)
+    {
+        return;
+    }
+
+    // this part handles string tokenization and custom planet creation
+    // 13 is ascii value for \n
+    if (key == 13)
+    {
+        char *tmp = (char *)malloc(sizeof(custom_btn->str));
+        strcpy(tmp, custom_btn->str);
+        char *token = strtok(tmp, ",");
+
+        // there are 12 properties of a Body but accelaration and selection is always zero by default. just added random color
+        int property_count = 6;
+        double value_holder[property_count] = {0};
+        int i = 0;
+        while (token != NULL)
+        {
+            // printf("%s ", token);
+            sscanf(token, "%lf", &value_holder[i]);
+            i++;
+            token = strtok(NULL, ",");
+        }
+        free(tmp);
+
+        for (int i = 0; i < property_count; i++)
+        {
+            printf("%lf ", value_holder[i]);
+        }
+        Body *body = create_body();
+        body->x = value_holder[0] / SPACE_SCALE;
+        body->y = value_holder[1] / SPACE_SCALE;
+        body->mass = value_holder[2] / MASS_SCALE;
+        body->radius = value_holder[3] * RADIUS_SCALE;
+        body->velocity.x = value_holder[4] * 1e3;
+        body->velocity.y = value_holder[5] * 1e3;
+
+        append_body(body, bodies_ptr, body_count_ptr);
+
+        free(custom_btn->str);
+        custom_btn->str = (char *)calloc(strlen("Create Custom Planet") + 1, sizeof(char));
+        strcpy(custom_btn->str, "Create Custom Planet");
+
+        custom_btn->selected = false;
+        *running_ptr = true;
+    }
+
+    if (strcmp(custom_btn->str, "Create Custom Planet") == 0)
+        strcpy(custom_btn->str, "");
+    if (key != 13)
+    {
+
+        custom_btn->str = char_cat(custom_btn->str, key);
+    }
+
+    int custom_str_len = strlen(custom_btn->str);
+
+    // 8 is ascii code for \b
+    if (key == 8 && custom_str_len > 0)
+    {
+        snprintf(custom_btn->str, custom_str_len - 1, "%s", custom_btn->str);
+    }
+
+    *btn_ptr = custom_btn;
+}
+
+void handle_count_button(Button **btn_ptr, unsigned char key, Body ***bodies_ptr, int *body_count_ptr)
+{
+
+    Button *count_btn = *btn_ptr;
+    int count_str_len = strlen(count_btn->str);
+
+    if (count_btn->selected == false)
+    {
+        printf("Shafin\n");
+        return;
+    }
+    if (key == 13 && count_btn->selected)
+    {
+        delete_all_bodies(bodies_ptr, body_count_ptr);
+        sscanf(count_btn->str, "%d", body_count_ptr);
+        *bodies_ptr = create_symmetric_system(*body_count_ptr);
+
+        free(count_btn->str);
+        count_btn->str = (char *)calloc(strlen("Create Symmetric System") + 1, sizeof(char));
+        strcpy(count_btn->str, "Create Symmetric System");
+    }
+    else if (key == 8 && count_str_len > 0 && count_btn->selected)
+    {
+        // 8 is ascii code for \b
+        snprintf(count_btn->str, count_str_len - 1, "%s", count_btn->str);
+    }
+    else if (count_btn->selected)
+    {
+        if (strcmp(count_btn->str, "Create Symmetric System") == 0)
+            strcpy(count_btn->str, "");
+        count_btn->str = char_cat(count_btn->str, key);
+    }
 }

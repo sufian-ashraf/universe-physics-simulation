@@ -1,28 +1,34 @@
 #include "iGraphics.h"
+#include <ctype.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 /*
 in draw_body() function orbit drawing part, i.e. iLine() isn't working as desired
 */
 #define WIDTH 800
 #define HEIGHT 800
-#define AU 1.496e11                                        // 1 Astronomical Unit = 1.496e11 meter
-#define G 6.673e-11                                        // Universal Gravitational Constant
-#define MAX_DISTANCE 70 * AU                               // UNIT meter
-#define MAX_VELOCITY 5e5                                   // UNIT: meter/second
-#define SPACE_SCALE (WIDTH / 100.0) / (MAX_DISTANCE / 100) // 800 Pixels = 70 AU
-#define RADIUS_SCALE 200
+#define AU 1.496e11                                          // 1 Astronomical Unit = 1.496e11 meter
+#define G 6.673e-11                                          // Universal Gravitational Constant
+#define MAX_DISTANCE (70 * AU)                               // UNIT meter
+#define MAX_VELOCITY 5e5                                     // UNIT: meter/second
+#define SPACE_SCALE ((WIDTH / 100.0) / (MAX_DISTANCE / 100)) // 800 Pixels = 70 AU
+#define RADIUS_SCALE 1.4 * AU // to set sun's radius equal to 16 pixel
+#define DRAW_SCALE 1
 #define COLLISION_FACTOR 1
 #define MASS_SCALE 1.6667e-25
-#define G_SCALED ((G / (MASS_SCALE * 1e4)) * SPACE_SCALE * 100) * SPACE_SCALE * 100 // after scaling the big G constant is G * SPACE_SCALE^2 / MASS_SCALE
+#define G_SCALED (((G / (MASS_SCALE * 1e4)) * SPACE_SCALE * 100) * SPACE_SCALE * 100) // after scaling the big G constant is G * SPACE_SCALE^2 / MASS_SCALE
 #define PI 3.141592
+
 typedef double pos_type;
 typedef double lld;
 
 lld TIMESTEP = 86400; // 1 hour
 bool is_symmetric = false;
+bool running = true;
+
 typedef struct Pair
 {
     pos_type x;
@@ -38,21 +44,23 @@ typedef struct Body
     pos_type mass;
     Pair velocity;
     Pair acceleration;
+    bool selected;
 } Body;
 
 Body *create_body(void)
 {
     Body *body = (Body *)malloc(sizeof(Body));
-    body->x = (MAX_DISTANCE / 2);
+    body->x = (MAX_DISTANCE / 3);
     // printf("%lf %lf\n", body->x, (MAX_DISTANCE / 2));
-    body->y = (MAX_DISTANCE / 2);
-    body->radius = 6.96e8;
+    body->y = (MAX_DISTANCE / 3);
+    body->radius = 6.4e6;
     body->color[0] = 0;
     body->color[1] = 0;
     body->color[2] = 255;
-    body->mass = 2e30;
+    body->mass = 5.98e24;
     body->velocity = {0, 1e4};
     body->acceleration = {0, 0};
+    body->selected = false;
     return body;
 }
 
@@ -79,16 +87,16 @@ Body **create_solar_system(int *body_count_ptr)
     pos_type center_y = MAX_DISTANCE / 2;
     Body **bodies = create_bodies(total_bodies);
 
-    *bodies[0] = {.x = center_x + 0.000 * AU, .y = center_y, .radius = 6.96e8, .color = {255, 165, 0}, .mass = 1.9885e31, .velocity = {.x = 0, .y = 0}, .acceleration = {.x = 0, .y = 0}};       // Sun
-    *bodies[1] = {.x = center_x - 1.387 * AU, .y = center_y, .radius = 2.495e7, .color = {170,170,170}, .mass = 0.33e25, .velocity = {.x = 0, .y = 47.4e3}, .acceleration = {.x = 0, .y = 0}};     // Mercury
-    *bodies[2] = {.x = center_x + 1.723 * AU, .y = center_y, .radius = 6.052e7, .color = {255,224,130}, .mass = 4.87e25, .velocity = {.x = 0, .y = 35e3}, .acceleration = {.x = 0, .y = 0}};       // Venus
-    *bodies[3] = {.x = center_x - 2.000 * AU, .y = center_y, .radius = 6.378e7, .color = {0, 128, 255}, .mass = 5.97e25, .velocity = {.x = 0, .y = 29.8e3}, .acceleration = {.x = 0, .y = 0}};     // Earth
-    *bodies[4] = {.x = center_x - 2.019 * AU, .y = center_y, .radius = 1.7375e7, .color = {200, 200, 200}, .mass = 7.3e23, .velocity = {.x = 0, .y = 1e3}, .acceleration = {.x = 0, .y = 0}};    // Moon
-    *bodies[5] = {.x = center_x + 2.523 * AU, .y = center_y, .radius = 3.396e7, .color = {204,51,0}, .mass = 0.642e25, .velocity = {.x = 0, .y = 24.1e3}, .acceleration = {.x = 0, .y = 0}};  // Mars
-    *bodies[6] = {.x = center_x - 6.205 * AU, .y = center_y, .radius = 71.492e7, .color = {231,204,161}, .mass = 1.898e28, .velocity = {.x = 0, .y = 13.1e3}, .acceleration = {.x = 0, .y = 0}};   // Jupiter
-    *bodies[7] = {.x = center_x + 10.582 * AU, .y = center_y, .radius = 60.268e7, .color = {255, 206,123}, .mass = 2.68e27, .velocity = {.x = 0, .y = 9.7e3}, .acceleration = {.x = 0, .y = 0}}; // Saturn
-    *bodies[8] = {.x = center_x - 20.20 * AU, .y = center_y, .radius = 25.559e7, .color = {144,238,144}, .mass = 8.68e26, .velocity = {.x = 0, .y = 6.8e3}, .acceleration = {.x = 0, .y = 0}}; // Uranus
-    *bodies[9] = {.x = center_x + 31.05 * AU, .y = center_y, .radius = 24.764e7, .color = {0, 102, 204}, .mass = 1.02e27, .velocity = {.x = 0, .y = 5.4e3}, .acceleration = {.x = 0, .y = 0}}; // Neptune
+    *bodies[0] = {.x = center_x + 0.000 * AU, .y = center_y, .radius = 6.96e9, .color = {255, 165, 0}, .mass = 1.9885e31, .velocity = {.x = 0, .y = 0}, .acceleration = {.x = 0, .y = 0}, .selected = false};         // Sun
+    *bodies[1] = {.x = center_x - 0.387 * AU, .y = center_y, .radius = 2.495e8, .color = {170, 170, 170}, .mass = 0.33e24, .velocity = {.x = 0, .y = 47.4e3}, .acceleration = {.x = 0, .y = 0}, .selected = false};   // Mercury
+    *bodies[2] = {.x = center_x + 0.723 * AU, .y = center_y, .radius = 6.052e8, .color = {255, 224, 130}, .mass = 4.87e24, .velocity = {.x = 0, .y = 35e3}, .acceleration = {.x = 0, .y = 0}, .selected = false};     // Venus
+    *bodies[3] = {.x = center_x - 1.000 * AU, .y = center_y, .radius = 6.378e8, .color = {0, 128, 255}, .mass = 5.97e24, .velocity = {.x = 0, .y = 29.8e3}, .acceleration = {.x = 0, .y = 0}, .selected = false};     // Earth
+    *bodies[4] = {.x = center_x - 1.019 * AU, .y = center_y, .radius = 1.7375e8, .color = {200, 200, 200}, .mass = 7.3e22, .velocity = {.x = 0, .y = 1e3}, .acceleration = {.x = 0, .y = 0}, .selected = false};      // Moon
+    *bodies[5] = {.x = center_x + 1.523 * AU, .y = center_y, .radius = 3.396e8, .color = {204, 51, 0}, .mass = 0.642e24, .velocity = {.x = 0, .y = 24.1e3}, .acceleration = {.x = 0, .y = 0}, .selected = false};     // Mars
+    *bodies[6] = {.x = center_x - 5.205 * AU, .y = center_y, .radius = 71.492e8, .color = {231, 204, 161}, .mass = 1.898e27, .velocity = {.x = 0, .y = 13.1e3}, .acceleration = {.x = 0, .y = 0}, .selected = false}; // Jupiter
+    *bodies[7] = {.x = center_x + 9.582 * AU, .y = center_y, .radius = 60.268e8, .color = {255, 206, 123}, .mass = 2.68e26, .velocity = {.x = 0, .y = 9.7e3}, .acceleration = {.x = 0, .y = 0}, .selected = false};   // Saturn
+    *bodies[8] = {.x = center_x - 19.20 * AU, .y = center_y, .radius = 25.559e8, .color = {144, 238, 144}, .mass = 8.68e25, .velocity = {.x = 0, .y = 6.8e3}, .acceleration = {.x = 0, .y = 0}, .selected = false};   // Uranus
+    *bodies[9] = {.x = center_x + 30.05 * AU, .y = center_y, .radius = 24.764e8, .color = {0, 102, 204}, .mass = 1.02e26, .velocity = {.x = 0, .y = 5.4e3}, .acceleration = {.x = 0, .y = 0}, .selected = false};     // Neptune
 
     return bodies;
 }
@@ -100,7 +108,7 @@ Body **create_symmetric_system(int body_count)
     srand(time(NULL));
     pos_type center_x = MAX_DISTANCE / 2;
     pos_type center_y = MAX_DISTANCE / 2;
-    pos_type common_mass = 1 / MASS_SCALE;
+    pos_type common_mass = 6e24;
     pos_type distance = 10 * AU; // from centroid center
 
     pos_type vel_factor = 0;
@@ -122,10 +130,10 @@ Body **create_symmetric_system(int body_count)
     {
         pos_type normal_x = cos((2 * PI * i) / vertex_count);
         pos_type normal_y = sin((2 * PI * i) / vertex_count);
-        *bodies[i] = {.x = center_x + normal_x * distance, .y = center_y + normal_y * distance, .radius = 1.4 * AU, .color = {rand() % 255, rand() % 255, rand() % 255}, .mass = common_mass, .velocity = {.x = -normal_y * common_vel, .y = normal_x * common_vel}, .acceleration = {.x = 0, .y = 0}}; // Sun
+        *bodies[i] = {.x = center_x + normal_x * distance, .y = center_y + normal_y * distance, .radius = RADIUS_SCALE, .color = {rand() % 255, rand() % 255, rand() % 255}, .mass = common_mass, .velocity = {.x = -normal_y * common_vel, .y = normal_x * common_vel}, .acceleration = {.x = 0, .y = 0}, .selected = false};
     }
 
-    *bodies[body_count - 1] = {.x = center_x, .y = center_y, .radius = 1.4 * AU, .color = {rand() % 255, rand() % 255, rand() % 255}, .mass = 2e30, .velocity = {.x = 0, .y = 0}, .acceleration = {.x = 0, .y = 0}}; // Sun
+    *bodies[body_count - 1] = {.x = center_x, .y = center_y, .radius = RADIUS_SCALE, .color = {rand() % 255, rand() % 255, rand() % 255}, .mass = 2e30, .velocity = {.x = 0, .y = 0}, .acceleration = {.x = 0, .y = 0}, .selected = false}; // Sun
 
     return bodies;
 }
@@ -302,7 +310,10 @@ void update_position(Body *body, Body ***bodies_ptr, int *body_count_ptr)
 
         bodies[self_index]->x += bodies[self_index]->velocity.x * TIMESTEP;
         bodies[self_index]->y += bodies[self_index]->velocity.y * TIMESTEP;
-        handle_out_of_bounds(bodies[self_index], bodies_ptr, body_count_ptr);
+        /*
+        Out of bounds error
+        */
+        // handle_out_of_bounds(bodies[self_index], bodies_ptr, body_count_ptr);
     }
 }
 
@@ -310,26 +321,106 @@ void draw_body(Body *body)
 {
     int x = body->x * SPACE_SCALE;
     int y = body->y * SPACE_SCALE;
-    int radius = body->radius * SPACE_SCALE * RADIUS_SCALE;
-
+    int radius = body->radius * SPACE_SCALE * DRAW_SCALE;
+    if (is_symmetric == false)
+        radius *= 300;
+    double theta = atan2(body->velocity.y, body->velocity.x);
+    int end_x = x + 2 * radius * cos(theta);
+    int end_y = y + 2 * radius * sin(theta);
     // printf("x=%d, y=%d, r=%d, (%d, %d, %d) \n", x, y, radius, body->color[0], body->color[1], body->color[2]);
 
     iSetColor(body->color[0], body->color[1], body->color[2]);
     iFilledCircle(x, y, radius);
 
+    iLine(x, y, end_x, end_y);
+    iFilledCircle(end_x, end_y, 2, 3);
     // isn't working as expecting
     // no orbit is being drawn
-    iPoint(x, y, 3);
 }
 
 void simulate_motion(Body ***bodies_ptr, int *body_count_ptr)
 {
     Body **bodies = *bodies_ptr;
     for (int i = 0; i < *body_count_ptr; i++)
-    {
+    {   
         update_position(bodies[i], bodies_ptr, body_count_ptr);
         bodies = *bodies_ptr;
         draw_body(bodies[i]);
-        // printf("Body %d: x=%lfAU, y=%lfAU, v_x=%lfm/s, v_y=%lfm/s, a_x=%lf, a_y=%lf\n", i, bodies[i]->x / AU, bodies[i]->y / AU, bodies[i]->velocity.x, bodies[i]->velocity.y, bodies[i]->acceleration.x, bodies[i]->acceleration.y);
+        // printf("Body %d: radius=%lf, x=%lfAU, y=%lfAU, v_x=%lfm/s, v_y=%lfm/s, a_x=%lf, a_y=%lf\n", i, bodies[i]->radius, bodies[i]->x / AU, bodies[i]->y / AU, bodies[i]->velocity.x, bodies[i]->velocity.y, bodies[i]->acceleration.x, bodies[i]->acceleration.y);
     }
+}
+
+int find_body_from_mouse(Body **bodies, int body_count, int mx, int my)
+{
+    for (int i = 0; i < body_count; i++)
+    {
+        int x = bodies[i]->x * SPACE_SCALE;
+        int y = bodies[i]->y * SPACE_SCALE;
+        pos_type width = bodies[i]->radius * SPACE_SCALE * DRAW_SCALE;
+        // printf("Checked %d,  (x,y,w)=(%d,%d,%d)\n", i, x, y, width);
+        if ((mx <= x + width && mx >= x - width) && (my >= y - width && my <= y + width))
+            return i;
+    }
+    return -1;
+}
+
+/*
+    Button object related code
+*/
+char *char_cat(char *s, char ch)
+{
+    int s_len = strlen(s);
+    int total_len = s_len + 1;
+
+    s = (char *)realloc(s, (total_len + 1) * sizeof(char));
+    *(s + s_len) = ch;
+    *(s + s_len + 1) = '\0';
+    return s;
+}
+
+typedef struct Button
+{
+    Pair position;
+    Pair dimensions;
+    char *str;
+    int bg_color[3];
+    int txt_color[3];
+    bool selected;
+} Button;
+
+Button *create_button(void)
+{
+    Button *button = (Button *)malloc(sizeof(Button));
+
+    *button = {.position = {.x = WIDTH - 150, .y = HEIGHT - 50}, .dimensions = {.x = 150, .y = 50}, .str = NULL, .bg_color = {0, 50, 137}, .txt_color = {255, 127, 123}};
+    button->str = (char *)calloc(strlen("Create Custom Planet") + 1, sizeof(char));
+    strcpy(button->str, "Create Custom Planet");
+    return button;
+}
+
+void delete_button(Button *button)
+{
+    free(button);
+}
+
+void draw_button(Button button)
+{
+    iSetColor(button.bg_color[0], button.bg_color[1], button.bg_color[2]);
+    iFilledRectangle(button.position.x, button.position.y, button.dimensions.x, button.dimensions.y);
+
+    iSetColor(255 - button.bg_color[0], 255 - button.bg_color[1], 255 - button.bg_color[2]);
+    iRectangle(button.position.x, button.position.y, button.dimensions.x, button.dimensions.y);
+
+    iSetColor(button.txt_color[0], button.txt_color[1], button.txt_color[2]);
+    iText(button.position.x, button.position.y + (button.dimensions.y / 2), button.str);
+}
+
+bool check_button_clicked(Button button, int mx, int my)
+{
+    int button_x = button.position.x, button_y = button.position.y;
+    if ((mx >= button_x && mx <= button_x + button.dimensions.x) && (my >= button_y && my <= button_y + button.dimensions.y))
+    {
+        return true;
+    }
+    return false;
 }

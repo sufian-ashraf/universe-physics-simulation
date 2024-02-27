@@ -87,16 +87,16 @@ Body **create_solar_system(int *body_count_ptr)
     pos_type center_y = MAX_DISTANCE / 2;
     Body **bodies = create_bodies(total_bodies);
 
-    *bodies[0] = {.x = center_x + 0.000 * AU, .y = center_y, .radius = 6.96e9, .color = {255, 165, 0}, .mass = 1.9885e31, .velocity = {.x = 0, .y = 0}, .acceleration = {.x = 0, .y = 0}, .selected = false};         // Sun
-    *bodies[1] = {.x = center_x - 0.387 * AU, .y = center_y, .radius = 2.495e8, .color = {170, 170, 170}, .mass = 0.33e24, .velocity = {.x = 0, .y = 47.4e3}, .acceleration = {.x = 0, .y = 0}, .selected = false};   // Mercury
-    *bodies[2] = {.x = center_x + 0.723 * AU, .y = center_y, .radius = 6.052e8, .color = {255, 224, 130}, .mass = 4.87e24, .velocity = {.x = 0, .y = 35e3}, .acceleration = {.x = 0, .y = 0}, .selected = false};     // Venus
-    *bodies[3] = {.x = center_x - 1.000 * AU, .y = center_y, .radius = 6.378e8, .color = {0, 128, 255}, .mass = 5.97e24, .velocity = {.x = 0, .y = 29.8e3}, .acceleration = {.x = 0, .y = 0}, .selected = false};     // Earth
-    *bodies[4] = {.x = center_x - 1.019 * AU, .y = center_y, .radius = 1.7375e8, .color = {200, 200, 200}, .mass = 7.3e22, .velocity = {.x = 0, .y = 1e3}, .acceleration = {.x = 0, .y = 0}, .selected = false};      // Moon
-    *bodies[5] = {.x = center_x + 1.523 * AU, .y = center_y, .radius = 3.396e8, .color = {204, 51, 0}, .mass = 0.642e24, .velocity = {.x = 0, .y = 24.1e3}, .acceleration = {.x = 0, .y = 0}, .selected = false};     // Mars
-    *bodies[6] = {.x = center_x - 5.205 * AU, .y = center_y, .radius = 71.492e8, .color = {231, 204, 161}, .mass = 1.898e27, .velocity = {.x = 0, .y = 13.1e3}, .acceleration = {.x = 0, .y = 0}, .selected = false}; // Jupiter
-    *bodies[7] = {.x = center_x + 9.582 * AU, .y = center_y, .radius = 60.268e8, .color = {255, 206, 123}, .mass = 2.68e26, .velocity = {.x = 0, .y = 9.7e3}, .acceleration = {.x = 0, .y = 0}, .selected = false};   // Saturn
-    *bodies[8] = {.x = center_x - 19.20 * AU, .y = center_y, .radius = 25.559e8, .color = {144, 238, 144}, .mass = 8.68e25, .velocity = {.x = 0, .y = 6.8e3}, .acceleration = {.x = 0, .y = 0}, .selected = false};   // Uranus
-    *bodies[9] = {.x = center_x + 30.05 * AU, .y = center_y, .radius = 24.764e8, .color = {0, 102, 204}, .mass = 1.02e26, .velocity = {.x = 0, .y = 5.4e3}, .acceleration = {.x = 0, .y = 0}, .selected = false};     // Neptune
+    *bodies[0] = {.x = center_x + 0.000 * AU, .y = center_y, .radius = 6.96e8, .color = {255, 165, 0}, .mass = 1.9885e31, .velocity = {.x = 0, .y = 0}, .acceleration = {.x = 0, .y = 0}, .selected = false};         // Sun
+    *bodies[1] = {.x = center_x - 0.387 * AU, .y = center_y, .radius = 2.495e7, .color = {170, 170, 170}, .mass = 0.33e24, .velocity = {.x = 0, .y = 47.4e3}, .acceleration = {.x = 0, .y = 0}, .selected = false};   // Mercury
+    *bodies[2] = {.x = center_x + 0.723 * AU, .y = center_y, .radius = 6.052e7, .color = {255, 224, 130}, .mass = 4.87e24, .velocity = {.x = 0, .y = 35e3}, .acceleration = {.x = 0, .y = 0}, .selected = false};     // Venus
+    *bodies[3] = {.x = center_x - 1.000 * AU, .y = center_y, .radius = 6.378e7, .color = {0, 128, 255}, .mass = 5.97e24, .velocity = {.x = 0, .y = 29.8e3}, .acceleration = {.x = 0, .y = 0}, .selected = false};     // Earth
+    *bodies[4] = {.x = center_x - 1.019 * AU, .y = center_y, .radius = 1.7375e7, .color = {200, 200, 200}, .mass = 7.3e22, .velocity = {.x = 0, .y = 1e3}, .acceleration = {.x = 0, .y = 0}, .selected = false};      // Moon
+    *bodies[5] = {.x = center_x + 1.523 * AU, .y = center_y, .radius = 3.396e7, .color = {204, 51, 0}, .mass = 0.642e24, .velocity = {.x = 0, .y = 24.1e3}, .acceleration = {.x = 0, .y = 0}, .selected = false};     // Mars
+    *bodies[6] = {.x = center_x - 5.205 * AU, .y = center_y, .radius = 71.492e7, .color = {231, 204, 161}, .mass = 1.898e27, .velocity = {.x = 0, .y = 13.1e3}, .acceleration = {.x = 0, .y = 0}, .selected = false}; // Jupiter
+    *bodies[7] = {.x = center_x + 9.582 * AU, .y = center_y, .radius = 60.268e7, .color = {255, 206, 123}, .mass = 2.68e26, .velocity = {.x = 0, .y = 9.7e3}, .acceleration = {.x = 0, .y = 0}, .selected = false};   // Saturn
+    *bodies[8] = {.x = center_x - 19.20 * AU, .y = center_y, .radius = 25.559e7, .color = {144, 238, 144}, .mass = 8.68e25, .velocity = {.x = 0, .y = 6.8e3}, .acceleration = {.x = 0, .y = 0}, .selected = false};   // Uranus
+    *bodies[9] = {.x = center_x + 30.05 * AU, .y = center_y, .radius = 24.764e7, .color = {0, 102, 204}, .mass = 1.02e26, .velocity = {.x = 0, .y = 5.4e3}, .acceleration = {.x = 0, .y = 0}, .selected = false};     // Neptune
 
     return bodies;
 }
@@ -322,8 +322,6 @@ void draw_body(Body *body)
     int x = body->x * SPACE_SCALE;
     int y = body->y * SPACE_SCALE;
     int radius = body->radius * SPACE_SCALE * DRAW_SCALE;
-    if (is_symmetric == false)
-        radius *= 300;
     double theta = atan2(body->velocity.y, body->velocity.x);
     int end_x = x + 2 * radius * cos(theta);
     int end_y = y + 2 * radius * sin(theta);

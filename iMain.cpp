@@ -174,7 +174,7 @@ int main()
 {
 	// place your own initialization codes here.
 	// iSetTimer(1000, iDraw);
-	is_symmetric = true;
+	collsion_on = true;
 	running = true;
 
 	default_btn->position.y -= default_btn->dimensions.y;

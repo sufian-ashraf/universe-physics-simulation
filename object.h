@@ -369,12 +369,10 @@ int find_body_from_mouse(Body **bodies, int body_count, int mx, int my)
 */
 char *char_cat(char *s, char ch)
 {
-    int s_len = strlen(s);
-    int total_len = s_len + 1;
-
-    s = (char *)realloc(s, (total_len + 1) * sizeof(char));
-    *(s + s_len) = ch;
-    *(s + s_len + 1) = '\0';
+    char *tmp = (char *)malloc(sizeof(char));
+    sprintf(tmp, "%c", ch);
+    strcat(s, tmp);
+    free(tmp);
     return s;
 }
 
@@ -438,27 +436,22 @@ void handle_custom_button(Button **btn_ptr, unsigned char key, Body ***bodies_pt
     // 13 is ascii value for \n
     if (key == 13)
     {
+        int property_count = 6;
+        double value_holder[property_count] = {0};
         char *tmp = (char *)malloc(sizeof(custom_btn->str));
         strcpy(tmp, custom_btn->str);
         char *token = strtok(tmp, ",");
 
         // there are 12 properties of a Body but accelaration and selection is always zero by default. just added random color
-        int property_count = 6;
-        double value_holder[property_count] = {0};
-        int i = 0;
-        while (token != NULL)
+        for (int i = 0; token != NULL; i++)
         {
-            // printf("%s ", token);
+            printf("%s ", token);
             sscanf(token, "%lf", &value_holder[i]);
-            i++;
+            printf("%lf\n", value_holder[i]);
             token = strtok(NULL, ",");
         }
         free(tmp);
 
-        for (int i = 0; i < property_count; i++)
-        {
-            printf("%lf ", value_holder[i]);
-        }
         Body *body = create_body();
         body->x = value_holder[0] / SPACE_SCALE;
         body->y = value_holder[1] / SPACE_SCALE;
@@ -469,19 +462,21 @@ void handle_custom_button(Button **btn_ptr, unsigned char key, Body ***bodies_pt
 
         append_body(body, bodies_ptr, body_count_ptr);
 
-        free(custom_btn->str);
-        custom_btn->str = (char *)calloc(strlen("Create Custom Planet") + 1, sizeof(char));
+
+        custom_btn->str = (char *)realloc(custom_btn->str, (strlen("Create Custom Planet") + 1) * sizeof(char));
+        if (custom_btn->str == NULL)
+        {
+            printf("Asif\n");
+        }
         strcpy(custom_btn->str, "Create Custom Planet");
 
         custom_btn->selected = false;
         *running_ptr = true;
+        return;
     }
 
-    if (strcmp(custom_btn->str, "Create Custom Planet") == 0)
-        strcpy(custom_btn->str, "");
-    if (key != 13)
+    if (isdigit(key) || key == ',')
     {
-
         custom_btn->str = char_cat(custom_btn->str, key);
     }
 
@@ -499,33 +494,32 @@ void handle_custom_button(Button **btn_ptr, unsigned char key, Body ***bodies_pt
 void handle_count_button(Button **btn_ptr, unsigned char key, Body ***bodies_ptr, int *body_count_ptr)
 {
 
-    Button *count_btn = *btn_ptr;
-    int count_str_len = strlen(count_btn->str);
+    Button *symmetric_btn = *btn_ptr;
+    int count_str_len = strlen(symmetric_btn->str);
 
-    if (count_btn->selected == false)
+    if (symmetric_btn->selected == false)
     {
-        printf("Shafin\n");
         return;
     }
-    if (key == 13 && count_btn->selected)
+
+    // ascii code for \n is 13
+    if (key == 13)
     {
         delete_all_bodies(bodies_ptr, body_count_ptr);
-        sscanf(count_btn->str, "%d", body_count_ptr);
+        sscanf(symmetric_btn->str, "%d", body_count_ptr);
         *bodies_ptr = create_symmetric_system(*body_count_ptr);
 
-        free(count_btn->str);
-        count_btn->str = (char *)calloc(strlen("Create Symmetric System") + 1, sizeof(char));
-        strcpy(count_btn->str, "Create Symmetric System");
+        free(symmetric_btn->str);
+        symmetric_btn->str = (char *)calloc(strlen("Create Symmetric System") + 1, sizeof(char));
+        strcpy(symmetric_btn->str, "Create Symmetric System");
     }
-    else if (key == 8 && count_str_len > 0 && count_btn->selected)
+    else if (key == 8 && count_str_len > 0 && symmetric_btn->selected)
     {
         // 8 is ascii code for \b
-        snprintf(count_btn->str, count_str_len - 1, "%s", count_btn->str);
+        snprintf(symmetric_btn->str, count_str_len - 1, "%s", symmetric_btn->str);
     }
-    else if (count_btn->selected)
+    else if (symmetric_btn->selected)
     {
-        if (strcmp(count_btn->str, "Create Symmetric System") == 0)
-            strcpy(count_btn->str, "");
-        count_btn->str = char_cat(count_btn->str, key);
+        symmetric_btn->str = char_cat(symmetric_btn->str, key);
     }
 }

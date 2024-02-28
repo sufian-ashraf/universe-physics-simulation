@@ -9,7 +9,7 @@ int str_index = 0;
 Body **bodies = create_symmetric_system(body_count);
 Button *custom_btn = create_button();
 Button *default_btn = create_button();
-Button *count_btn = create_button();
+Button *symmetric_btn = create_button();
 int x = 300, y = 300, r = 20;
 /*
 	function iDraw() is called again and again by the system.
@@ -42,7 +42,7 @@ void iDraw()
 	// iSetColor(20, 200, 0);
 	draw_button(*custom_btn);
 	draw_button(*default_btn);
-	draw_button(*count_btn);
+	draw_button(*symmetric_btn);
 }
 
 /*
@@ -109,14 +109,14 @@ void iMouse(int button, int state, int mx, int my)
 
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && check_button_clicked(*custom_btn, mx, my))
 	{
+		strcpy(custom_btn->str, "");
 		custom_btn->selected = true;
 	}
-
-	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && check_button_clicked(*count_btn, mx, my))
+	else if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && check_button_clicked(*symmetric_btn, mx, my))
 	{
-		count_btn->selected = true;
+		strcpy(symmetric_btn->str, "");
+		symmetric_btn->selected = true;
 	}
-
 }
 
 /*
@@ -147,7 +147,7 @@ void iKeyboard(unsigned char key)
 		return;
 	}
 	handle_custom_button(&custom_btn, key, &bodies, &body_count, &running);
-	handle_count_button(&count_btn, key, &bodies, &body_count);
+	handle_count_button(&symmetric_btn, key, &bodies, &body_count);
 }
 
 /*
@@ -173,14 +173,14 @@ int main()
 {
 	// place your own initialization codes here.
 	// iSetTimer(1000, iDraw);
-	is_symmetric = true;
+	collision_on = true;
 	running = true;
 
 	default_btn->position.y -= default_btn->dimensions.y;
 	strcpy(default_btn->str, "Create Planet");
 
-	count_btn->position.y -= 2 * count_btn->dimensions.y;
-	strcpy(count_btn->str, "Create Symmetric System");
+	symmetric_btn->position.y -= 2 * symmetric_btn->dimensions.y;
+	strcpy(symmetric_btn->str, "Create Symmetric System");
 	iInitialize(WIDTH, HEIGHT, "Universe Sandbox");
 	return 0;
 }

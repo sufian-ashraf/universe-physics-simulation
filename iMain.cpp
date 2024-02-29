@@ -53,10 +53,8 @@ void iDraw()
 	*/
 void iMouseMove(int mx, int my)
 {
-	// printf("x = %d, y= %d\n", mx, my);
-	// place your codes here
+
 	index_left = find_body_from_mouse(bodies, body_count, mx, my);
-	// printf("Clicked on %d, (mx, my)=%d,%d\n", index_left, mx, my);
 	if (index_left != -1)
 	{
 		bodies[index_left]->selected = true;
@@ -76,31 +74,15 @@ void iMouseMove(int mx, int my)
 	*/
 void iMouse(int button, int state, int mx, int my)
 {
-
-	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
-	{
-		// place your codes here
-		//	printf("x = %d, y= %d\n",mx,my);
-		// x += 10;
-		// y += 10;
-	}
-
-	if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN)
-	{
-		// // place your codes here
-		// x -= 10;
-		// y -= 10;
-	}
-
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && check_button_clicked(*default_btn, mx, my))
 	{
 		default_btn->selected = true;
 		Body *body = create_body((rand() % WIDTH), (rand() % HEIGHT), 1, 16, rand() % 1000, rand() % 1000);
 		append_body(body, &bodies, &body_count);
+		default_btn->selected = false;
 		// running = false;
 	}
-
-	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && check_button_clicked(*custom_btn, mx, my))
+	else if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && check_button_clicked(*custom_btn, mx, my))
 	{
 		strcpy(custom_btn->str, "");
 		custom_btn->selected = true;

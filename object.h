@@ -51,38 +51,36 @@ typedef struct Body
 
 // these x,y,mass,radiusvalues only takes in scaled values
 // but they are converted and stored in real,actual  values
+/*
+    problematic memory allocation. mostly creates NULL
+*/
 Body *create_body(double pos_x, double pos_y, double mass, double radius, double vel_x, double vel_y)
 {
     Body *body = (Body *)malloc(sizeof(Body));
+
     if (body == NULL)
     {
         // Handle memory allocation failure
         printf("Memory allocation failed\n");
         return NULL;
     }
-    // body->position = {x / SPACE_SCALE, y / SPACE_SCALE};
-    // body->position = {400, 400};
     body->position.x = pos_x / SPACE_SCALE;
     body->position.y = pos_y / SPACE_SCALE;
-    // printf("(%lf, %lf)\n", body->position.x, body->position.y);
     body->mass = mass / MASS_SCALE;
-    // body->radius = radius / SPACE_SCALE;
     body->radius = (radius + log(mass)) / SPACE_SCALE;
-    // body->velocity = {vel_x, vel_y};
     body->velocity.x = vel_x;
     body->velocity.y = vel_y;
-    // body->acceleration = {0, 0};
     body->acceleration.x = 0;
     body->acceleration.y = 0;
     body->selected = false;
     for (int i = 0; i < 3; i++)
         body->color[i] = rand() % 256;
-    // printf("Create Body: radius=%lfm, x=%lfm, y=%lfm, v_x=%lfm/s, v_y=%lfm/s, a_x=%lf, a_y=%lf\n", body->radius, body->position.x, body->position.y, body->velocity.x, body->velocity.y, body->acceleration.x, body->acceleration.y);
+    printf("Create Body: radius=%lfm, x=%lfm, y=%lfm, v_x=%lfm/s, v_y=%lfm/s, a_x=%lf, a_y=%lf\n", body->radius, body->position.x, body->position.y, body->velocity.x, body->velocity.y, body->acceleration.x, body->acceleration.y);
 
     return body;
 }
 
-void append_body(Body *new_body, Body ***bodies_ptr, int *body_count_ptr)
+int append_body(Body *new_body, Body ***bodies_ptr, int *body_count_ptr)
 {
     int body_count = *body_count_ptr;
     *body_count_ptr += 1;
@@ -92,18 +90,59 @@ void append_body(Body *new_body, Body ***bodies_ptr, int *body_count_ptr)
         *bodies_ptr = (Body **)malloc(*body_count_ptr * sizeof(Body *));
     }
     Body **bodies = *bodies_ptr;
-    bodies = (Body **)realloc(bodies, (*body_count_ptr) * sizeof(*bodies));
+    Body **tmp = bodies;
+    int k = 0;
+    printf("Append reallocation count:\n");
+    do
+    {
+        printf("%d\n", k);
+        k++;
+        tmp = (Body **)realloc(bodies, (*body_count_ptr) * sizeof(Body *));
 
-    if (bodies == NULL)
+    } while (tmp == NULL);
+
+    if (tmp == NULL)
     {
         printf("Nigga\n");
-        return;
+        return -1;
     }
+    bodies = tmp;
     *bodies_ptr = bodies; // Update the original pointer in the calling function
     (*bodies_ptr)[body_count] = new_body;
     bodies = (*bodies_ptr);
+
+    return 0;
     // printf("Append body: Body %d: radius=%lfm, x=%lfm, y=%lfm, v_x=%lfm/s, v_y=%lfm/s, a_x=%lf, a_y=%lf\n", body_count, bodies[body_count]->radius, bodies[body_count]->position.x, bodies[body_count]->position.y, bodies[body_count]->velocity.x, bodies[body_count]->velocity.y, bodies[body_count]->acceleration.x, bodies[body_count]->acceleration.y);
 }
+
+// int append_body(Body *new_body, Body ***bodies_ptr, int *body_count_ptr)
+// {
+//     if (bodies_ptr == NULL)
+//     {
+//         printf("Justaway\n");
+//         return -2;
+//     }
+//     int body_count = *body_count_ptr;
+//     *body_count_ptr += 1;
+//     // if (body_count == 0)
+//     // {
+//     //     *bodies_ptr = (Body **)realloc(*bodies_ptr, sizeof(Body *));
+//     // }
+
+//     // printf("%p, %p\n", bodies_ptr, *bodies_ptr);
+//     // Reallocate memory for the array to accommodate the new body
+//     Body **tmp = (Body **)realloc(*bodies_ptr, (*body_count_ptr) * sizeof(**bodies_ptr));
+//     if (tmp == NULL)
+//     {
+//         printf("Memory reallocation failed\n");
+//         return -1;
+//     }
+
+//     *bodies_ptr = tmp;                    // Update the pointer if reallocation succeeded
+//     (*bodies_ptr)[body_count] = new_body; // Add the new body to the array
+
+//     return 0;
+// }
 
 pos_type pair_magnitude(Pair p)
 {
@@ -488,6 +527,7 @@ bool check_button_clicked(Button button, int mx, int my)
     return false;
 }
 
+// 2nd custom planet is creating problems
 void handle_custom_button(Button **btn_ptr, unsigned char key, Body ***bodies_ptr, int *body_count_ptr, bool *running_ptr)
 {
     Button *custom_btn = *btn_ptr;
@@ -502,9 +542,9 @@ void handle_custom_button(Button **btn_ptr, unsigned char key, Body ***bodies_pt
     {
         int property_count = 6;
         double properties[property_count] = {0};
-        char *tmp = (char *)malloc(sizeof(custom_btn->str));
-        strcpy(tmp, custom_btn->str);
-        char *token = strtok(tmp, ",");
+        char *tmp_str = (char *)malloc(strlen(custom_btn->str) + 1);
+        strcpy(tmp_str, custom_btn->str);
+        char *token = strtok(tmp_str, ",");
 
         // there are 12 properties of a Body but accelaration and selection is always zero by default. just added random color
         for (int i = 0; token != NULL; i++)
@@ -514,12 +554,34 @@ void handle_custom_button(Button **btn_ptr, unsigned char key, Body ***bodies_pt
             printf("%lf\n", properties[i]);
             token = strtok(NULL, ",");
         }
-        free(tmp);
+        printf("End\n");
+        free(tmp_str);
+        printf("Succesfully freed tmp str.\n");
 
+
+
+        /*
+            Problem is here
+        */
+        // create body isn't working
         Body *body = create_body(properties[0], properties[1], properties[2], properties[3], properties[4], properties[5]);
 
-        append_body(body, bodies_ptr, body_count_ptr);
+        if (body == NULL)
+        {
+            printf("Why NULL\n");
+            return;
+        }
+        else
+        {
+            printf("Noice\n");
+            printf("New Body: radius=%lfm, x=%lfm, y=%lfm, v_x=%lfm/s, v_y=%lfm/s, a_x=%lf, a_y=%lf\n", body->radius * SPACE_SCALE, body->position.x, body->position.y, body->velocity.x, body->velocity.y, body->acceleration.x, body->acceleration.y);
+        }
 
+        int p = append_body(body, bodies_ptr, body_count_ptr);
+        if (p == -1)
+        {
+            printf("Wut\n");
+        }
         custom_btn->str = (char *)realloc(custom_btn->str, (strlen("Create Custom Planet") + 1) * sizeof(char));
         if (custom_btn->str == NULL)
         {

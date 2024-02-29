@@ -10,6 +10,7 @@ Button *custom_btn = create_button();
 Button *default_btn = create_button();
 Button *symmetric_btn = create_button();
 Button *modification_btn = create_button();
+Button *collection_btn = create_button();
 int mod_body_index = -1;
 /*
 	function iDraw() is called again and again by the system.
@@ -28,13 +29,10 @@ void iDraw()
 		}
 		simulate_motion(&bodies, &body_count, time_skip);
 	}
-	// iSetColor(20, 200, 200);
-	// iFilledCircle(x, y, r);
-	// iFilledRectangle(10, 30, 20, 20);
-	// iSetColor(20, 200, 0);
 	draw_button(*custom_btn);
 	draw_button(*default_btn);
 	draw_button(*symmetric_btn);
+	draw_button(*collection_btn);
 	if (modification_btn->selected)
 	{
 		draw_button(*modification_btn);
@@ -72,10 +70,21 @@ void iMouse(int button, int state, int mx, int my)
 	{
 		default_btn->selected = true;
 		int vel_range = 1000 + rand() % 5000;
-		Body *body = create_body((rand() % WIDTH), (rand() % HEIGHT), 1, 16, 100 + rand() % vel_range, 100 + rand() % vel_range);
+		Body *body = create_body((rand() % WIDTH), (rand() % HEIGHT), 1, 16, rand() % vel_range, rand() % vel_range);
 		append_body(body, &bodies, &body_count);
 		default_btn->selected = false;
 		// running = false;
+	}
+	else if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && check_button_clicked(*collection_btn, mx, my))
+	{
+		int cluster_count = 10;
+		collection_btn->selected = true;
+		int vel_range = 1000 + rand() % 5000;
+		for (int i = 0; i < cluster_count; i++)
+		{
+			Body *body = create_body((rand() % WIDTH), (rand() % HEIGHT), 1, 8, (rand() % vel_range) * pow(-1, rand() % 2), (rand() % vel_range) * pow(-1, rand() % 2));
+			append_body(body, &bodies, &body_count);
+		}
 	}
 	else if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && check_button_clicked(*custom_btn, mx, my))
 	{
@@ -120,13 +129,18 @@ void iKeyboard(unsigned char key)
 	{
 		running = true;
 	}
+	else if (key == 'T')
+	{
+		time_skip = !time_skip;
+	}
+	else if (key == 'N')
+	{
+		newtons_formula_on = !newtons_formula_on;
+	}
 	else if (key == 'I')
 	{
-		time_skip = true;
-	}
-	else if (key == 'O')
-	{
-		time_skip = false;
+		delete_all_bodies(&bodies, &body_count);
+		bodies = create_bodies(&body_count, file);
 	}
 	else if (isdigit(key) == false && key != 13 && key != 8 && key != ',')
 	{
@@ -169,6 +183,9 @@ int main()
 
 	symmetric_btn->position.y -= 2 * symmetric_btn->dimensions.y;
 	strcpy(symmetric_btn->str, "Create Symmetric System");
+
+	collection_btn->position.y -= 3 * collection_btn->dimensions.y;
+	strcpy(collection_btn->str, "Create Cluster");
 
 	modification_btn->dimensions.x = 250;
 	modification_btn->position.x = WIDTH / 2 - modification_btn->dimensions.x / 2;

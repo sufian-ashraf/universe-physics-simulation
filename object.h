@@ -21,17 +21,17 @@ in draw_body() function orbit drawing part, i.e. iLine() isn't working as desire
 #define RADIUS_SCALE 28.845e-3 // to set sun's radius equal to double of earth's pixel radius w.r.t to mass
 #define MAX_SPEED 7e3
 #define AVG_DENSITY 3600 // Unit kg/m^3. this value is avg of sun and earths density
-// #define G_SCALED (((G / (MASS_SCALE * 1e4)) * SPACE_SCALE * 100) * SPACE_SCALE * 100) // after scaling the big G constant is G * SPACE_SCALE^2 / MASS_SCALE
-#define G_SCALED 2.3242e-6
+#define G_SCALED 2.3242e-6 // after scaling the big G constant is G * SPACE_SCALE^2 / MASS_SCALE
 #define PI 3.141592
 
 typedef double pos_type;
-typedef double lld;
 
-lld TIMESTEP = 86400; // 1 hour
+pos_type TIMESTEP = 86400; // 1 day
 bool collision_on = false;
 bool running = true;
 bool time_skip = false;
+bool newtons_formula_on = true;
+
 typedef struct Pair
 {
     pos_type x;
@@ -51,9 +51,6 @@ typedef struct Body
 
 // these x,y,mass,radiusvalues only takes in scaled values
 // but they are converted and stored in real,actual  values
-/*
-    problematic memory allocation. mostly creates NULL
-*/
 Body *create_body(double pos_x, double pos_y, double mass, double radius, double vel_x, double vel_y)
 {
     Body *body = (Body *)malloc(sizeof(Body));
@@ -75,7 +72,6 @@ Body *create_body(double pos_x, double pos_y, double mass, double radius, double
     body->selected = false;
     for (int i = 0; i < 3; i++)
         body->color[i] = rand() % 256;
-    printf("Create Body: radius=%lfm, x=%lfm, y=%lfm, v_x=%lfm/s, v_y=%lfm/s, a_x=%lf, a_y=%lf\n", body->radius, body->position.x, body->position.y, body->velocity.x, body->velocity.y, body->acceleration.x, body->acceleration.y);
 
     return body;
 }
@@ -92,10 +88,9 @@ int append_body(Body *new_body, Body ***bodies_ptr, int *body_count_ptr)
     Body **bodies = *bodies_ptr;
     Body **tmp = bodies;
     int k = 0;
-    printf("Append reallocation count:\n");
+    // printf("Append reallocation count:\n");
     do
     {
-        printf("%d\n", k);
         k++;
         tmp = (Body **)realloc(bodies, (*body_count_ptr) * sizeof(Body *));
 
@@ -103,7 +98,6 @@ int append_body(Body *new_body, Body ***bodies_ptr, int *body_count_ptr)
 
     if (tmp == NULL)
     {
-        printf("Nigga\n");
         return -1;
     }
     bodies = tmp;
@@ -112,37 +106,7 @@ int append_body(Body *new_body, Body ***bodies_ptr, int *body_count_ptr)
     bodies = (*bodies_ptr);
 
     return 0;
-    // printf("Append body: Body %d: radius=%lfm, x=%lfm, y=%lfm, v_x=%lfm/s, v_y=%lfm/s, a_x=%lf, a_y=%lf\n", body_count, bodies[body_count]->radius, bodies[body_count]->position.x, bodies[body_count]->position.y, bodies[body_count]->velocity.x, bodies[body_count]->velocity.y, bodies[body_count]->acceleration.x, bodies[body_count]->acceleration.y);
 }
-
-// int append_body(Body *new_body, Body ***bodies_ptr, int *body_count_ptr)
-// {
-//     if (bodies_ptr == NULL)
-//     {
-//         printf("Justaway\n");
-//         return -2;
-//     }
-//     int body_count = *body_count_ptr;
-//     *body_count_ptr += 1;
-//     // if (body_count == 0)
-//     // {
-//     //     *bodies_ptr = (Body **)realloc(*bodies_ptr, sizeof(Body *));
-//     // }
-
-//     // printf("%p, %p\n", bodies_ptr, *bodies_ptr);
-//     // Reallocate memory for the array to accommodate the new body
-//     Body **tmp = (Body **)realloc(*bodies_ptr, (*body_count_ptr) * sizeof(**bodies_ptr));
-//     if (tmp == NULL)
-//     {
-//         printf("Memory reallocation failed\n");
-//         return -1;
-//     }
-
-//     *bodies_ptr = tmp;                    // Update the pointer if reallocation succeeded
-//     (*bodies_ptr)[body_count] = new_body; // Add the new body to the array
-
-//     return 0;
-// }
 
 pos_type pair_magnitude(Pair p)
 {
@@ -183,17 +147,11 @@ Body **create_bodies(int *body_count_ptr, FILE *file)
         for (int i = 0; token != NULL; i++)
         {
             sscanf(token, "%lf", &properties[i]);
-            printf("%s , %lf\n", token, properties[i]);
             token = strtok(NULL, ",");
         }
 
         Body *body = create_body(properties[0], properties[1], properties[2], properties[3], properties[4], properties[5]);
-        // printf("Body %d: radius=%lfm, x=%lfm, y=%lfm, v_x=%lfm/s, v_y=%lfm/s, a_x=%lf, a_y=%lf\n", count, body->radius, body->position.x, body->position.y, body->velocity.x, body->velocity.y, body->acceleration.x, body->acceleration.y);
-
-        // after appending things aren't working well
         append_body(body, &bodies, body_count_ptr);
-        // printf("Body %d: radius=%lfm, x=%lfm, y=%lfm, v_x=%lfm/s, v_y=%lfm/s, a_x=%lf, a_y=%lf\n", count, bodies[count]->radius * SPACE_SCALE, bodies[count]->position.x, bodies[count]->position.y, bodies[count]->velocity.x, bodies[count]->velocity.y, bodies[count]->acceleration.x, bodies[count]->acceleration.y);
-        printf("%p, %p\n", bodies, bodies[count]);
         count++;
     }
 
@@ -202,28 +160,6 @@ Body **create_bodies(int *body_count_ptr, FILE *file)
     *body_count_ptr = count;
     return bodies;
 }
-
-// Body **create_solar_system(int *body_count_ptr)
-// {
-//     int total_bodies = 10; // 8 planets, sun and moon
-//     *body_count_ptr = total_bodies;
-//     pos_type center_x = MAX_DISTANCE / 2;
-//     pos_type center_y = MAX_DISTANCE / 2;
-//     Body **bodies = create_bodies(total_bodies);
-
-//     *bodies[0] = {.x = center_x + 0.000 * AU, .y = center_y, .radius = 6.96e8, .color = {255, 165, 0}, .mass = 1.9885e31, .velocity = {.x = 0, .y = 0}, .acceleration = {.x = 0, .y = 0}, .selected = false};         // Sun
-//     *bodies[1] = {.x = center_x - 0.387 * AU, .y = center_y, .radius = 2.495e7, .color = {170, 170, 170}, .mass = 0.33e24, .velocity = {.x = 0, .y = 47.4e3}, .acceleration = {.x = 0, .y = 0}, .selected = false};   // Mercury
-//     *bodies[2] = {.x = center_x + 0.723 * AU, .y = center_y, .radius = 6.052e7, .color = {255, 224, 130}, .mass = 4.87e24, .velocity = {.x = 0, .y = 35e3}, .acceleration = {.x = 0, .y = 0}, .selected = false};     // Venus
-//     *bodies[3] = {.x = center_x - 1.000 * AU, .y = center_y, .radius = 6.378e7, .color = {0, 128, 255}, .mass = 5.97e24, .velocity = {.x = 0, .y = 29.8e3}, .acceleration = {.x = 0, .y = 0}, .selected = false};     // Earth
-//     *bodies[4] = {.x = center_x - 1.019 * AU, .y = center_y, .radius = 1.7375e7, .color = {200, 200, 200}, .mass = 7.3e22, .velocity = {.x = 0, .y = 1e3}, .acceleration = {.x = 0, .y = 0}, .selected = false};      // Moon
-//     *bodies[5] = {.x = center_x + 1.523 * AU, .y = center_y, .radius = 3.396e7, .color = {204, 51, 0}, .mass = 0.642e24, .velocity = {.x = 0, .y = 24.1e3}, .acceleration = {.x = 0, .y = 0}, .selected = false};     // Mars
-//     *bodies[6] = {.x = center_x - 5.205 * AU, .y = center_y, .radius = 71.492e7, .color = {231, 204, 161}, .mass = 1.898e27, .velocity = {.x = 0, .y = 13.1e3}, .acceleration = {.x = 0, .y = 0}, .selected = false}; // Jupiter
-//     *bodies[7] = {.x = center_x + 9.582 * AU, .y = center_y, .radius = 60.268e7, .color = {255, 206, 123}, .mass = 2.68e26, .velocity = {.x = 0, .y = 9.7e3}, .acceleration = {.x = 0, .y = 0}, .selected = false};   // Saturn
-//     *bodies[8] = {.x = center_x - 19.20 * AU, .y = center_y, .radius = 25.559e7, .color = {144, 238, 144}, .mass = 8.68e25, .velocity = {.x = 0, .y = 6.8e3}, .acceleration = {.x = 0, .y = 0}, .selected = false};   // Uranus
-//     *bodies[9] = {.x = center_x + 30.05 * AU, .y = center_y, .radius = 24.764e7, .color = {0, 102, 204}, .mass = 1.02e26, .velocity = {.x = 0, .y = 5.4e3}, .acceleration = {.x = 0, .y = 0}, .selected = false};     // Neptune
-
-//     return bodies;
-// }
 
 Body **create_symmetric_system(int body_count)
 {
@@ -255,7 +191,6 @@ Body **create_symmetric_system(int body_count)
         pos_type normal_x = cos((2 * PI * i) / vertex_count);
         pos_type normal_y = sin((2 * PI * i) / vertex_count);
         bodies[i] = create_body((center_x + normal_x * distance) * SPACE_SCALE, (center_y + normal_y * distance) * SPACE_SCALE, common_mass * MASS_SCALE, common_radius, (-normal_y * common_vel), (normal_x * common_vel));
-        // printf("Body %d: radius=%lfm, x=%lfm, y=%lfm, v_x=%lfm/s, v_y=%lfm/s, a_x=%lf, a_y=%lf\n", i, bodies[i]->radius * SPACE_SCALE, bodies[i]->position.x, bodies[i]->position.y, bodies[i]->velocity.x, bodies[i]->velocity.y, bodies[i]->acceleration.x, bodies[i]->acceleration.y);
     }
 
     bodies[body_count - 1] = create_body(center_x * SPACE_SCALE, center_y * SPACE_SCALE, 2e30 * MASS_SCALE, common_radius, 0, 0); // Sun
@@ -325,22 +260,6 @@ void delete_all_bodies(Body ***bodies_ptr, int *body_count_ptr)
     }
 }
 
-bool check_collision(Body body1, Body body2)
-{
-    // Calculate the distance between the centers of the two bodies
-    pos_type d_square = pow((body2.position.x - body1.position.x), 2) + pow((body2.position.y - body1.position.y), 2);
-    pos_type r_square = pow(COLLISION_FACTOR * (body1.radius + body2.radius), 2);
-    // printf("d_square=%lf, r_square=%lf\n", d_square / (AU * AU), r_square / (AU * AU));
-    // Check if the distance is less than the sum of the radii of the two bodies
-    if (d_square <= r_square)
-    {
-        return true; // Collision detected
-    }
-    else
-    {
-        return false; // No collision
-    }
-}
 
 void calculate_accelaration(Body *self, Body other)
 {
@@ -350,37 +269,17 @@ void calculate_accelaration(Body *self, Body other)
     double theta = atan2(d_y, d_x);
 
     pos_type mass = MASS_SCALE * other.mass;
-    pos_type accelaration = G_SCALED * (mass / d_square);
+    pos_type accelaration = 0;
+        accelaration = G_SCALED * (mass / d_square);
 
+    if (newtons_formula_on == false)
+    {
+        pos_type strength = 0.01;
+        accelaration += strength / log(AU + sqrt(d_square) / SPACE_SCALE);
+    }
     self->acceleration = {accelaration * cos(theta), accelaration * sin(theta)};
 }
 
-Body *handle_collision(Body *body1, Body *body2, Body ***bodies_ptr, int *body_count_ptr)
-{
-    // Calculate the total mass of the two bodies
-    pos_type total_mass = body1->mass + body2->mass;
-    pos_type position_x = (body1->position.x + body2->position.x) / 2;
-    pos_type position_y = (body1->position.y + body2->position.y) / 2;
-    pos_type radius = sqrt(pow(body1->radius, 2) + pow(body2->radius, 2));
-
-    // Calculate the new velocity of the combined body after collision
-    pos_type vel_x = (body1->mass / total_mass) * body1->velocity.x + (body2->mass / total_mass) * body2->velocity.x;
-    pos_type vel_y = (body1->mass / total_mass) * body1->velocity.y + (body2->mass / total_mass) * body2->velocity.y;
-
-    Body *merged_body = create_body(position_x, position_y, total_mass, radius, vel_x, vel_y);
-
-    delete_body(body1, bodies_ptr, body_count_ptr);
-    delete_body(body2, bodies_ptr, body_count_ptr);
-    return merged_body;
-}
-
-// boundary collision just makes thing jarring. it's not pleasant or soothing
-void handle_out_of_bounds(Body *body, Body ***bodies_ptr, int *body_count_ptr)
-{
-    pos_type max_bound = 10.0 * MAX_DISTANCE;
-    if ((body->position.y > MAX_DISTANCE + max_bound) || (body->position.y < -max_bound) || (body->position.x > MAX_DISTANCE + max_bound) || (body->position.x < -max_bound))
-        delete_body(body, bodies_ptr, body_count_ptr);
-}
 
 void update_position(Body *body, Body ***bodies_ptr, int *body_count_ptr)
 {
@@ -388,34 +287,19 @@ void update_position(Body *body, Body ***bodies_ptr, int *body_count_ptr)
     int self_index = find_body_index(*body, *bodies_ptr, *body_count_ptr);
     for (int i = 0; i < *body_count_ptr; i++)
     {
-        // pos_type distance = sqrt(pow((bodies[i]->position.x - bodies[self_index]->position.x) * SPACE_SCALE, 2) + pow((bodies[i]->position.y - bodies[self_index]->position.y) * SPACE_SCALE, 2)) / SPACE_SCALE;
-        if (i == self_index)
-        {
-        }
-        else if (collision_on == true && check_collision(*bodies[self_index], *bodies[i]))
-        {
-            body = handle_collision(bodies[self_index], bodies[i], bodies_ptr, body_count_ptr);
-            self_index = find_body_index(*body, *bodies_ptr, *body_count_ptr);
-            append_body(body, bodies_ptr, body_count_ptr);
-            bodies = *bodies_ptr;
-            i--;
-            continue;
-        }
-
         if (i != self_index)
         {
             calculate_accelaration(bodies[self_index], *bodies[i]);
         }
 
+        pos_type u_x = bodies[self_index]->velocity.x;
+        pos_type u_y = bodies[self_index]->velocity.y;
         bodies[self_index]->velocity.x += bodies[self_index]->acceleration.x * TIMESTEP;
         bodies[self_index]->velocity.y += bodies[self_index]->acceleration.y * TIMESTEP;
 
-        bodies[self_index]->position.x += bodies[self_index]->velocity.x * TIMESTEP;
-        bodies[self_index]->position.y += bodies[self_index]->velocity.y * TIMESTEP;
-        /*
-        Out of bounds error
-        */
-        // handle_out_of_bounds(bodies[self_index], bodies_ptr, body_count_ptr);
+        bodies[self_index]->position.x += (u_x + bodies[self_index]->velocity.x) * (TIMESTEP / 2);
+        bodies[self_index]->position.y += (u_y + bodies[self_index]->velocity.y) * (TIMESTEP / 2);
+
     }
 }
 
@@ -424,10 +308,7 @@ void draw_body(Body *body)
     int x = body->position.x * SPACE_SCALE;
     int y = body->position.y * SPACE_SCALE;
     int radius = body->radius * SPACE_SCALE * DRAW_SCALE;
-    // printf("x=%d, y=%d, r=%d, (%d, %d, %d) \n", x, y, radius, body->color[0], body->color[1], body->color[2]);
 
-    // if (collision_on == false)
-    //     radius *= 300;
     double theta = atan2(body->velocity.y, body->velocity.x);
     int end_x = x + 2 * radius * cos(theta);
     int end_y = y + 2 * radius * sin(theta);
@@ -452,7 +333,6 @@ void simulate_motion(Body ***bodies_ptr, int *body_count_ptr, bool time_skip)
         {
             draw_body(bodies[i]);
         }
-        // printf("Body %d: radius=%lf, x=%lfAU, y=%lfAU, v_x=%lfm/s, v_y=%lfm/s, a_x=%lf, a_y=%lf\n", i, bodies[i]->radius, bodies[i]->position.x / AU, bodies[i]->position.y / AU, bodies[i]->velocity.x, bodies[i]->velocity.y, bodies[i]->acceleration.x, bodies[i]->acceleration.y);
     }
 }
 
@@ -463,7 +343,6 @@ int find_body_from_mouse(Body **bodies, int body_count, int mx, int my)
         int x = bodies[i]->position.x * SPACE_SCALE;
         int y = bodies[i]->position.y * SPACE_SCALE;
         pos_type width = bodies[i]->radius * SPACE_SCALE * DRAW_SCALE;
-        // printf("Checked %d,  (x,y,w)=(%d,%d,%d)\n", i, x, y, width);
         if ((mx <= x + width && mx >= x - width) && (my >= y - width && my <= y + width))
             return i;
     }
@@ -544,7 +423,6 @@ bool check_button_clicked(Button button, int mx, int my)
     return false;
 }
 
-// 2nd custom planet is creating problems
 void handle_custom_button(Button **btn_ptr, unsigned char key, Body ***bodies_ptr, int *body_count_ptr, bool *running_ptr)
 {
     Button *custom_btn = *btn_ptr;
@@ -567,41 +445,24 @@ void handle_custom_button(Button **btn_ptr, unsigned char key, Body ***bodies_pt
         // there are 12 properties of a Body but accelaration and selection is always zero by default. just added random color
         for (int i = 0; token != NULL; i++)
         {
-            printf("%s ", token);
             sscanf(token, "%lf", &properties[i]);
-            printf("%lf\n", properties[i]);
             token = strtok(NULL, ",");
         }
-        printf("End\n");
         free(tmp_str);
-        printf("Succesfully freed tmp str.\n");
 
-        /*
-            Problem is here
-        */
-        // create body isn't working
         Body *body = create_body(properties[0], properties[1], properties[2], properties[3], properties[4], properties[5]);
-
         if (body == NULL)
         {
-            printf("Why NULL\n");
+            printf("Custom body creation failed.\n");
             return;
         }
-        else
-        {
-            printf("Noice\n");
-            printf("New Body: radius=%lfm, x=%lfm, y=%lfm, v_x=%lfm/s, v_y=%lfm/s, a_x=%lf, a_y=%lf\n", body->radius * SPACE_SCALE, body->position.x, body->position.y, body->velocity.x, body->velocity.y, body->acceleration.x, body->acceleration.y);
-        }
 
-        int p = append_body(body, bodies_ptr, body_count_ptr);
-        if (p == -1)
-        {
-            printf("Wut\n");
-        }
+        append_body(body, bodies_ptr, body_count_ptr);
+
         custom_btn->str = (char *)realloc(custom_btn->str, (strlen("Create Custom Planet") + 1) * sizeof(char));
         if (custom_btn->str == NULL)
         {
-            printf("Asif\n");
+            printf("Custom button str reallocation failed.\n");
         }
         strcpy(custom_btn->str, "Create Custom Planet");
 
@@ -630,7 +491,6 @@ void handle_symmetric_button(Button **btn_ptr, unsigned char key, Body ***bodies
     Button *symmetric_btn = *btn_ptr;
     int len = strlen(symmetric_btn->str);
 
-    printf("Key value = %d\n", key);
     if (symmetric_btn->selected == false)
     {
         return;
@@ -650,9 +510,7 @@ void handle_symmetric_button(Button **btn_ptr, unsigned char key, Body ***bodies
     else if (key == 8 && len > 0 && symmetric_btn->selected)
     {
         // 8 is ascii code for \b
-
         snprintf(symmetric_btn->str, len - 1, "%s", symmetric_btn->str);
-        printf("%s\n", symmetric_btn->str);
     }
     else if (symmetric_btn->selected)
     {
@@ -685,18 +543,15 @@ void handle_modification_button(Button **btn_ptr, unsigned char key, Body ***bod
 
         for (int i = 0; i < modifiable_property_count && token != NULL; i++)
         {
-            printf("%s ", token);
             sscanf(token, "%lf", &modifiable_properties[i]);
-            printf("%lf\n", modifiable_properties[i]);
             token = strtok(NULL, ",");
         }
-
         free(tmp_str);
 
         modification_btn->str = (char *)realloc(modification_btn->str, (strlen("Mass, radius, vel x, vel y") + 1) * sizeof(char));
         if (modification_btn->str == NULL)
         {
-            printf("Ikram\n");
+            printf("Modification button str reallocation error.\n");
         }
         strcpy(modification_btn->str, "Mass, radius, vel x, vel y");
 

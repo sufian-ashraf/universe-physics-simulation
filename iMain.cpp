@@ -86,20 +86,33 @@ void iMouse(int button, int state, int mx, int my)
 			append_body(body, &bodies, &body_count);
 		}
 	}
-	else if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && check_button_clicked(*custom_btn, mx, my))
+	else if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && check_button_clicked(*custom_btn, mx, my) && symmetric_btn->selected == false && modification_btn->selected == false)
 	{
 		strcpy(custom_btn->str, "");
 		custom_btn->selected = true;
+
+		symmetric_btn->selected = false;
+		modification_btn->selected = false;
 	}
-	else if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && check_button_clicked(*symmetric_btn, mx, my))
+	else if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && check_button_clicked(*symmetric_btn, mx, my) && custom_btn->selected == false && modification_btn->selected == false)
 	{
 		strcpy(symmetric_btn->str, "");
 		symmetric_btn->selected = true;
+
+		custom_btn->selected = false;
+		modification_btn->selected = false;
 	}
-	else if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN)
+	else if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN && custom_btn->selected == false && symmetric_btn->selected == false)
 	{
-		modification_btn->selected = true;
 		mod_body_index = find_body_from_mouse(bodies, body_count, mx, my);
+		printf("%d\n", mod_body_index);
+		if (mod_body_index != -1)
+		{
+			modification_btn->selected = true;
+			
+			symmetric_btn->selected = false;
+			custom_btn->selected = false;
+		}
 	}
 }
 
@@ -147,6 +160,7 @@ void iKeyboard(unsigned char key)
 		printf("Please enter digits, comma, newline etc.\n");
 		return;
 	}
+
 	handle_custom_button(&custom_btn, key, &bodies, &body_count, &running);
 	handle_symmetric_button(&symmetric_btn, key, &bodies, &body_count);
 	handle_modification_button(&modification_btn, key, &bodies, &body_count, mod_body_index);

@@ -510,7 +510,7 @@ void handle_symmetric_button(Button **btn_ptr, unsigned char key, Body ***bodies
     else if (key == 8 && len > 0 && symmetric_btn->selected)
     {
         // 8 is ascii code for \b
-        snprintf(symmetric_btn->str, len - 1, "%s", symmetric_btn->str);
+        snprintf(symmetric_btn->str, len, "%s", symmetric_btn->str);
     }
     else if (symmetric_btn->selected)
     {

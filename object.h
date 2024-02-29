@@ -89,11 +89,10 @@ void append_body(Body *new_body, Body ***bodies_ptr, int *body_count_ptr)
 
     if (*bodies_ptr == NULL)
     {
-        *bodies_ptr = (Body **)malloc(sizeof(Body *));
+        *bodies_ptr = (Body **)malloc(*body_count_ptr * sizeof(Body *));
     }
     Body **bodies = *bodies_ptr;
-
-    Body **tmp = (Body **)realloc(bodies, (*body_count_ptr) * sizeof(*bodies));
+    bodies = (Body **)realloc(bodies, (*body_count_ptr) * sizeof(*bodies));
 
     if (bodies == NULL)
     {
@@ -154,7 +153,7 @@ Body **create_bodies(int *body_count_ptr, FILE *file)
 
         // after appending things aren't working well
         append_body(body, &bodies, body_count_ptr);
-        printf("Body %d: radius=%lfm, x=%lfm, y=%lfm, v_x=%lfm/s, v_y=%lfm/s, a_x=%lf, a_y=%lf\n", count, bodies[count]->radius * SPACE_SCALE, bodies[count]->position.x, bodies[count]->position.y, bodies[count]->velocity.x, bodies[count]->velocity.y, bodies[count]->acceleration.x, bodies[count]->acceleration.y);
+        // printf("Body %d: radius=%lfm, x=%lfm, y=%lfm, v_x=%lfm/s, v_y=%lfm/s, a_x=%lf, a_y=%lf\n", count, bodies[count]->radius * SPACE_SCALE, bodies[count]->position.x, bodies[count]->position.y, bodies[count]->velocity.x, bodies[count]->velocity.y, bodies[count]->acceleration.x, bodies[count]->acceleration.y);
         printf("%p, %p\n", bodies, bodies[count]);
         count++;
     }
@@ -211,15 +210,16 @@ Body **create_symmetric_system(int body_count)
     }
 
     pos_type common_vel = (1e4 / vertex_count) + sqrt((G * common_mass * vel_factor) / (4 * distance));
-
+    pos_type common_radius = 12; // scaled value
     for (int i = 0; i < vertex_count; i++)
     {
         pos_type normal_x = cos((2 * PI * i) / vertex_count);
         pos_type normal_y = sin((2 * PI * i) / vertex_count);
-        bodies[i] = create_body((center_x + normal_x * distance) * SPACE_SCALE, (center_y + normal_y * distance) * SPACE_SCALE, common_mass * MASS_SCALE, 8, (-normal_y * common_vel) * SPEED_SCALE, (normal_x * common_vel) * SPEED_SCALE);
+        bodies[i] = create_body((center_x + normal_x * distance) * SPACE_SCALE, (center_y + normal_y * distance) * SPACE_SCALE, common_mass * MASS_SCALE, common_radius, (-normal_y * common_vel), (normal_x * common_vel));
+        // printf("Body %d: radius=%lfm, x=%lfm, y=%lfm, v_x=%lfm/s, v_y=%lfm/s, a_x=%lf, a_y=%lf\n", i, bodies[i]->radius * SPACE_SCALE, bodies[i]->position.x, bodies[i]->position.y, bodies[i]->velocity.x, bodies[i]->velocity.y, bodies[i]->acceleration.x, bodies[i]->acceleration.y);
     }
 
-    bodies[body_count - 1] = create_body(center_x * SPACE_SCALE, center_y * SPACE_SCALE, 2e30 * MASS_SCALE, 16, 0, 0); // Sun
+    bodies[body_count - 1] = create_body(center_x * SPACE_SCALE, center_y * SPACE_SCALE, 2e30 * MASS_SCALE, common_radius, 0, 0); // Sun
 
     return bodies;
 }

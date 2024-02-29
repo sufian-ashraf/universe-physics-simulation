@@ -538,6 +538,7 @@ void handle_custom_button(Button **btn_ptr, unsigned char key, Body ***bodies_pt
 
     // this part handles string tokenization and custom planet creation
     // 13 is ascii value for \n
+    int custom_str_len = strlen(custom_btn->str);
     if (key == 13)
     {
         int property_count = 6;
@@ -593,19 +594,17 @@ void handle_custom_button(Button **btn_ptr, unsigned char key, Body ***bodies_pt
         *running_ptr = true;
         return;
     }
-
-    if (isdigit(key) || key == ',')
+    else if (key == 8 && custom_str_len > 0)
+    {
+    // 8 is ascii code for \b
+        snprintf(custom_btn->str, custom_str_len, "%s", custom_btn->str);
+    }
+    else if (isdigit(key) || key == ',')
     {
         custom_btn->str = char_cat(custom_btn->str, key);
     }
 
-    int custom_str_len = strlen(custom_btn->str);
 
-    // 8 is ascii code for \b
-    if (key == 8 && custom_str_len > 0)
-    {
-        snprintf(custom_btn->str, custom_str_len - 1, "%s", custom_btn->str);
-    }
 
     *btn_ptr = custom_btn;
 }
@@ -614,8 +613,9 @@ void handle_symmetric_button(Button **btn_ptr, unsigned char key, Body ***bodies
 {
 
     Button *symmetric_btn = *btn_ptr;
-    int count_str_len = strlen(symmetric_btn->str);
+    int len = strlen(symmetric_btn->str);
 
+    printf("Key value = %d\n", key);
     if (symmetric_btn->selected == false)
     {
         return;
@@ -632,10 +632,12 @@ void handle_symmetric_button(Button **btn_ptr, unsigned char key, Body ***bodies
         symmetric_btn->str = (char *)calloc(strlen("Create Symmetric System") + 1, sizeof(char));
         strcpy(symmetric_btn->str, "Create Symmetric System");
     }
-    else if (key == 8 && count_str_len > 0 && symmetric_btn->selected)
+    else if (key == 8 && len > 0 && symmetric_btn->selected)
     {
         // 8 is ascii code for \b
-        snprintf(symmetric_btn->str, count_str_len - 1, "%s", symmetric_btn->str);
+        
+        snprintf(symmetric_btn->str, len - 1, "%s", symmetric_btn->str);
+        printf("%s\n", symmetric_btn->str);
     }
     else if (symmetric_btn->selected)
     {

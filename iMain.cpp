@@ -3,16 +3,14 @@
 
 int body_count = 0;
 int index_left = -1;
-int str_index = 0;
 
-// Body **bodies = create_solar_system(&body_count);
-// Body **bodies = create_symmetric_system(body_count);
 FILE *file = fopen("planets.txt", "r");
-Body  **bodies = create_bodies(&body_count, file);
+Body **bodies = create_bodies(&body_count, file);
 Button *custom_btn = create_button();
 Button *default_btn = create_button();
 Button *symmetric_btn = create_button();
-int x = 300, y = 300, r = 20;
+Button *modification_btn = create_button();
+int mod_body_index = -1;
 /*
 	function iDraw() is called again and again by the system.
 
@@ -21,22 +19,14 @@ int x = 300, y = 300, r = 20;
 void iDraw()
 {
 	// place your drawing codes here
-
 	if (running)
 	{
-		iClear();
-		int count = 40;
-		int piece_width = WIDTH / count;
-		for (int i = 0, x = 0, y = 0; i < count; i++)
+		if (time_skip == false)
 		{
-			iSetColor(0, 50, 0);
-			iLine(0, y, WIDTH, y);
-			iLine(x, 0, x, WIDTH);
-			y += piece_width;
-			x += piece_width;
+			iClear();
+			draw_grid_lines();
 		}
-
-		simulate_motion(&bodies, &body_count);
+		simulate_motion(&bodies, &body_count, time_skip);
 	}
 	// iSetColor(20, 200, 200);
 	// iFilledCircle(x, y, r);
@@ -45,6 +35,10 @@ void iDraw()
 	draw_button(*custom_btn);
 	draw_button(*default_btn);
 	draw_button(*symmetric_btn);
+	if (modification_btn->selected)
+	{
+		draw_button(*modification_btn);
+	}
 }
 
 /*
@@ -77,7 +71,8 @@ void iMouse(int button, int state, int mx, int my)
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && check_button_clicked(*default_btn, mx, my))
 	{
 		default_btn->selected = true;
-		Body *body = create_body((rand() % WIDTH), (rand() % HEIGHT), 1, 16, rand() % 1000, rand() % 1000);
+		int vel_range = 1000 + rand() % 5000;
+		Body *body = create_body((rand() % WIDTH), (rand() % HEIGHT), 1, 16, 100 + rand() % vel_range, 100 + rand() % vel_range);
 		append_body(body, &bodies, &body_count);
 		default_btn->selected = false;
 		// running = false;
@@ -91,6 +86,11 @@ void iMouse(int button, int state, int mx, int my)
 	{
 		strcpy(symmetric_btn->str, "");
 		symmetric_btn->selected = true;
+	}
+	else if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN)
+	{
+		modification_btn->selected = true;
+		mod_body_index = find_body_from_mouse(bodies, body_count, mx, my);
 	}
 }
 
@@ -106,6 +106,10 @@ void iKeyboard(unsigned char key)
 	{
 		delete_all_bodies(&bodies, &body_count);
 		delete_button(custom_btn);
+		delete_button(modification_btn);
+		delete_button(default_btn);
+		delete_button(symmetric_btn);
+		fclose(file);
 		exit(0);
 	}
 	else if (key == 'P')
@@ -116,13 +120,22 @@ void iKeyboard(unsigned char key)
 	{
 		running = true;
 	}
-	if (isdigit(key) == false && key != 13 && key != 8 && key != ',')
+	else if (key == 'I')
 	{
-		printf("Please enter digits, comma or newline.\n");
+		time_skip = true;
+	}
+	else if (key == 'O')
+	{
+		time_skip = false;
+	}
+	else if (isdigit(key) == false && key != 13 && key != 8 && key != ',')
+	{
+		printf("Please enter digits, comma, newline etc.\n");
 		return;
 	}
 	handle_custom_button(&custom_btn, key, &bodies, &body_count, &running);
 	handle_symmetric_button(&symmetric_btn, key, &bodies, &body_count);
+	handle_modification_button(&modification_btn, key, &bodies, &body_count, mod_body_index);
 }
 
 /*
@@ -148,14 +161,21 @@ int main()
 {
 	// place your own initialization codes here.
 	// iSetTimer(1000, iDraw);
-	collision_on = true;
+	collision_on = false;
 	running = true;
-
+	time_skip = false;
 	default_btn->position.y -= default_btn->dimensions.y;
 	strcpy(default_btn->str, "Create Planet");
 
 	symmetric_btn->position.y -= 2 * symmetric_btn->dimensions.y;
 	strcpy(symmetric_btn->str, "Create Symmetric System");
+
+	modification_btn->dimensions.x = 250;
+	modification_btn->position.x = WIDTH / 2 - modification_btn->dimensions.x / 2;
+	modification_btn->position.y = HEIGHT - modification_btn->dimensions.y;
+	modification_btn->str = (char *)realloc(modification_btn->str, (strlen("Mass, radius, vel x, vel y") + 1) * sizeof(char));
+	strcpy(modification_btn->str, "Mass, radius, vel x, vel y");
+
 	iInitialize(WIDTH, HEIGHT, "Universe Sandbox");
 	return 0;
 }

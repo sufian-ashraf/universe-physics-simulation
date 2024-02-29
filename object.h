@@ -19,7 +19,7 @@ in draw_body() function orbit drawing part, i.e. iLine() isn't working as desire
 #define COLLISION_FACTOR 1
 #define MASS_SCALE 1.6667e-25
 #define RADIUS_SCALE 28.845e-3 // to set sun's radius equal to double of earth's pixel radius w.r.t to mass
-#define SPEED_SCALE 1e-3
+#define MAX_SPEED 7e3
 #define AVG_DENSITY 3600 // Unit kg/m^3. this value is avg of sun and earths density
 // #define G_SCALED (((G / (MASS_SCALE * 1e4)) * SPACE_SCALE * 100) * SPACE_SCALE * 100) // after scaling the big G constant is G * SPACE_SCALE^2 / MASS_SCALE
 #define G_SCALED 2.3242e-6
@@ -31,7 +31,7 @@ typedef double lld;
 lld TIMESTEP = 86400; // 1 hour
 bool collision_on = false;
 bool running = true;
-
+bool time_skip = false;
 typedef struct Pair
 {
     pos_type x;
@@ -392,7 +392,7 @@ void update_position(Body *body, Body ***bodies_ptr, int *body_count_ptr)
         if (i == self_index)
         {
         }
-        else if (collision_on == false && check_collision(*bodies[self_index], *bodies[i]))
+        else if (collision_on == true && check_collision(*bodies[self_index], *bodies[i]))
         {
             body = handle_collision(bodies[self_index], bodies[i], bodies_ptr, body_count_ptr);
             self_index = find_body_index(*body, *bodies_ptr, *body_count_ptr);
@@ -441,14 +441,17 @@ void draw_body(Body *body)
     // no orbit is being drawn
 }
 
-void simulate_motion(Body ***bodies_ptr, int *body_count_ptr)
+void simulate_motion(Body ***bodies_ptr, int *body_count_ptr, bool time_skip)
 {
     Body **bodies = *bodies_ptr;
     for (int i = 0; i < *body_count_ptr; i++)
     {
         update_position(bodies[i], bodies_ptr, body_count_ptr);
         bodies = *bodies_ptr;
-        draw_body(bodies[i]);
+        if (time_skip == false)
+        {
+            draw_body(bodies[i]);
+        }
         // printf("Body %d: radius=%lf, x=%lfAU, y=%lfAU, v_x=%lfm/s, v_y=%lfm/s, a_x=%lf, a_y=%lf\n", i, bodies[i]->radius, bodies[i]->position.x / AU, bodies[i]->position.y / AU, bodies[i]->velocity.x, bodies[i]->velocity.y, bodies[i]->acceleration.x, bodies[i]->acceleration.y);
     }
 }
@@ -465,6 +468,20 @@ int find_body_from_mouse(Body **bodies, int body_count, int mx, int my)
             return i;
     }
     return -1;
+}
+
+void draw_grid_lines(void)
+{
+    int grid_count = 40;
+    int piece_width = WIDTH / grid_count;
+    for (int i = 0, x = 0, y = 0; i < grid_count; i++)
+    {
+        iSetColor(0, 40, 0);
+        iLine(0, y, WIDTH, y);
+        iLine(x, 0, x, WIDTH);
+        y += piece_width;
+        x += piece_width;
+    }
 }
 
 /*
@@ -493,7 +510,7 @@ Button *create_button(void)
 {
     Button *button = (Button *)malloc(sizeof(Button));
 
-    *button = {.position = {.x = WIDTH - 150, .y = HEIGHT - 50}, .dimensions = {.x = 150, .y = 50}, .str = NULL, .bg_color = {0, 50, 137}, .txt_color = {255, 127, 123}};
+    *button = {.position = {.x = WIDTH - 200, .y = HEIGHT - 50}, .dimensions = {.x = 200, .y = 50}, .str = NULL, .bg_color = {0, 50, 137}, .txt_color = {255, 127, 123}};
     button->str = (char *)calloc(strlen("Create Custom Planet") + 1, sizeof(char));
     strcpy(button->str, "Create Custom Planet");
     return button;
@@ -559,8 +576,6 @@ void handle_custom_button(Button **btn_ptr, unsigned char key, Body ***bodies_pt
         free(tmp_str);
         printf("Succesfully freed tmp str.\n");
 
-
-
         /*
             Problem is here
         */
@@ -592,19 +607,19 @@ void handle_custom_button(Button **btn_ptr, unsigned char key, Body ***bodies_pt
 
         custom_btn->selected = false;
         *running_ptr = true;
+        *btn_ptr = custom_btn;
+
         return;
     }
     else if (key == 8 && custom_str_len > 0)
     {
-    // 8 is ascii code for \b
+        // 8 is ascii code for \b
         snprintf(custom_btn->str, custom_str_len, "%s", custom_btn->str);
     }
-    else if (isdigit(key) || key == ',')
+    else if (isdigit(key) || key == ',' || key == '-')
     {
         custom_btn->str = char_cat(custom_btn->str, key);
     }
-
-
 
     *btn_ptr = custom_btn;
 }
@@ -635,7 +650,7 @@ void handle_symmetric_button(Button **btn_ptr, unsigned char key, Body ***bodies
     else if (key == 8 && len > 0 && symmetric_btn->selected)
     {
         // 8 is ascii code for \b
-        
+
         snprintf(symmetric_btn->str, len - 1, "%s", symmetric_btn->str);
         printf("%s\n", symmetric_btn->str);
     }
@@ -643,4 +658,65 @@ void handle_symmetric_button(Button **btn_ptr, unsigned char key, Body ***bodies
     {
         symmetric_btn->str = char_cat(symmetric_btn->str, key);
     }
+}
+
+void handle_modification_button(Button **btn_ptr, unsigned char key, Body ***bodies_ptr, int *body_count_ptr, int body_index)
+{
+    Button *modification_btn = *btn_ptr;
+    if (modification_btn->selected == false)
+    {
+        return;
+    }
+
+    int modification_strlen = strlen(modification_btn->str);
+    if (strcmp(modification_btn->str, "Mass, radius, vel x, vel y") == 0)
+    {
+        strcpy(modification_btn->str, "");
+    }
+    if (key == 13)
+    {
+        // modifiable properties mass,radius, vel_x, vel_y
+        int modifiable_property_count = 4;
+        double modifiable_properties[modifiable_property_count] = {0};
+
+        char *tmp_str = (char *)malloc((strlen(modification_btn->str) + 1) * sizeof(char));
+        strcpy(tmp_str, modification_btn->str);
+        char *token = strtok(tmp_str, ",");
+
+        for (int i = 0; i < modifiable_property_count && token != NULL; i++)
+        {
+            printf("%s ", token);
+            sscanf(token, "%lf", &modifiable_properties[i]);
+            printf("%lf\n", modifiable_properties[i]);
+            token = strtok(NULL, ",");
+        }
+
+        free(tmp_str);
+
+        modification_btn->str = (char *)realloc(modification_btn->str, (strlen("Mass, radius, vel x, vel y") + 1) * sizeof(char));
+        if (modification_btn->str == NULL)
+        {
+            printf("Ikram\n");
+        }
+        strcpy(modification_btn->str, "Mass, radius, vel x, vel y");
+
+        Body *body = create_body((*bodies_ptr)[body_index]->position.x * SPACE_SCALE, (*bodies_ptr)[body_index]->position.y * SPACE_SCALE, modifiable_properties[0], modifiable_properties[1], modifiable_properties[2], modifiable_properties[3]);
+        delete_body((*bodies_ptr)[body_index], bodies_ptr, body_count_ptr);
+        append_body(body, bodies_ptr, body_count_ptr);
+
+        modification_btn->selected = false;
+        *btn_ptr = modification_btn;
+        return;
+    }
+    else if (key == 8 && modification_strlen > 0)
+    {
+        // 8 is ascii code for \b
+        snprintf(modification_btn->str, modification_strlen, "%s", modification_btn->str);
+    }
+    else if (isdigit(key) || key == ',' || key == '-')
+    {
+        modification_btn->str = char_cat(modification_btn->str, key);
+    }
+
+    *btn_ptr = modification_btn;
 }

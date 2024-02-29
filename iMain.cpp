@@ -1,12 +1,14 @@
 // #include "iGraphics.h"
 #include "object.h"
 
-int body_count = 11;
+int body_count = 0;
 int index_left = -1;
 int str_index = 0;
 
 // Body **bodies = create_solar_system(&body_count);
-Body **bodies = create_symmetric_system(body_count);
+// Body **bodies = create_symmetric_system(body_count);
+FILE *file = fopen("planets.txt", "r");
+Body  **bodies = create_bodies(&body_count, file);
 Button *custom_btn = create_button();
 Button *default_btn = create_button();
 Button *symmetric_btn = create_button();
@@ -61,8 +63,8 @@ void iMouseMove(int mx, int my)
 	}
 	if (index_left != -1 && bodies[index_left]->selected)
 	{
-		bodies[index_left]->x = mx / SPACE_SCALE;
-		bodies[index_left]->y = my / SPACE_SCALE;
+		bodies[index_left]->position.x = mx / SPACE_SCALE;
+		bodies[index_left]->position.y = my / SPACE_SCALE;
 		bodies[index_left]->selected = false;
 		printf("Moved %d, to %d, %d\n", index_left, mx, my);
 	}
@@ -93,17 +95,7 @@ void iMouse(int button, int state, int mx, int my)
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && check_button_clicked(*default_btn, mx, my))
 	{
 		default_btn->selected = true;
-		Body *body = create_body();
-		body->x = (rand() % WIDTH) / SPACE_SCALE;
-		body->y = (rand() % WIDTH) / SPACE_SCALE;
-		body->radius = RADIUS_SCALE;
-		body->velocity.y = rand() % 1000;
-		body->velocity.x = rand() % 1000;
-		for (int i = 0; i < 3; i++)
-		{
-			body->color[i] = rand() % 255;
-		}
-
+		Body *body = create_body((rand() % WIDTH), (rand() % HEIGHT), 1, 16, rand() % 1000, rand() % 1000);
 		append_body(body, &bodies, &body_count);
 		// running = false;
 	}
@@ -148,7 +140,7 @@ void iKeyboard(unsigned char key)
 		return;
 	}
 	handle_custom_button(&custom_btn, key, &bodies, &body_count, &running);
-	handle_count_button(&symmetric_btn, key, &bodies, &body_count);
+	handle_symmetric_button(&symmetric_btn, key, &bodies, &body_count);
 }
 
 /*

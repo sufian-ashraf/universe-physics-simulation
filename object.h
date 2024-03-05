@@ -5,9 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-/*
-in draw_body() function orbit drawing part, i.e. iLine() isn't working as desired
-*/
+
 #define WIDTH 800
 #define HEIGHT 800
 #define AU 1.496e11                                            // 1 Astronomical Unit = 1.496e11 meter
@@ -16,18 +14,16 @@ in draw_body() function orbit drawing part, i.e. iLine() isn't working as desire
 #define MAX_VELOCITY 5e5                                       // UNIT: meter/second
 #define SPACE_SCALE ((WIDTH / 100.0) / (MAX_DISTANCE / 100.0)) // 800 Pixels = 70 AU
 #define DRAW_SCALE 1
-#define COLLISION_FACTOR 1
 #define MASS_SCALE 1.6667e-25
 #define RADIUS_SCALE 28.845e-3 // to set sun's radius equal to double of earth's pixel radius w.r.t to mass
 #define MAX_SPEED 7e3
-#define AVG_DENSITY 3600 // Unit kg/m^3. this value is avg of sun and earths density
+#define AVG_DENSITY 3600   // Unit kg/m^3. this value is avg of sun and earths density
 #define G_SCALED 2.3242e-6 // after scaling the big G constant is G * SPACE_SCALE^2 / MASS_SCALE
 #define PI 3.141592
-
+#define NOT_FOUND -1
 typedef double pos_type;
 
 pos_type TIMESTEP = 86400; // 1 day
-bool collision_on = false;
 bool running = true;
 bool time_skip = false;
 bool newtons_formula_on = true;
@@ -88,7 +84,6 @@ int append_body(Body *new_body, Body ***bodies_ptr, int *body_count_ptr)
     Body **bodies = *bodies_ptr;
     Body **tmp = bodies;
     int k = 0;
-    // printf("Append reallocation count:\n");
     do
     {
         k++;
@@ -211,7 +206,7 @@ int find_body_index(Body body, Body **bodies, int body_count)
         if (is_same_body(body, *bodies[i]))
             return i;
     }
-    return -1;
+    return NOT_FOUND;
 }
 
 void delete_body(Body *body, Body ***bodies_ptr, int *body_count_ptr)
@@ -221,7 +216,7 @@ void delete_body(Body *body, Body ***bodies_ptr, int *body_count_ptr)
     int body_index = find_body_index(*body, *bodies_ptr, body_count);
 
     // Body not found in the array
-    if (body_index == -1)
+    if (body_index == NOT_FOUND)
     {
         return;
     }
@@ -260,7 +255,6 @@ void delete_all_bodies(Body ***bodies_ptr, int *body_count_ptr)
     }
 }
 
-
 void calculate_accelaration(Body *self, Body other)
 {
     pos_type d_x = (other.position.x - self->position.x) * SPACE_SCALE;
@@ -270,7 +264,7 @@ void calculate_accelaration(Body *self, Body other)
 
     pos_type mass = MASS_SCALE * other.mass;
     pos_type accelaration = 0;
-        accelaration = G_SCALED * (mass / d_square);
+    accelaration = G_SCALED * (mass / d_square);
 
     if (newtons_formula_on == false)
     {
@@ -279,7 +273,6 @@ void calculate_accelaration(Body *self, Body other)
     }
     self->acceleration = {accelaration * cos(theta), accelaration * sin(theta)};
 }
-
 
 void update_position(Body *body, Body ***bodies_ptr, int *body_count_ptr)
 {
@@ -299,7 +292,6 @@ void update_position(Body *body, Body ***bodies_ptr, int *body_count_ptr)
 
         bodies[self_index]->position.x += (u_x + bodies[self_index]->velocity.x) * (TIMESTEP / 2);
         bodies[self_index]->position.y += (u_y + bodies[self_index]->velocity.y) * (TIMESTEP / 2);
-
     }
 }
 
@@ -346,7 +338,7 @@ int find_body_from_mouse(Body **bodies, int body_count, int mx, int my)
         if ((mx <= x + width && mx >= x - width) && (my >= y - width && my <= y + width))
             return i;
     }
-    return -1;
+    return NOT_FOUND;
 }
 
 void draw_grid_lines(void)
@@ -506,6 +498,10 @@ void handle_symmetric_button(Button **btn_ptr, unsigned char key, Body ***bodies
         free(symmetric_btn->str);
         symmetric_btn->str = (char *)calloc(strlen("Create Symmetric System") + 1, sizeof(char));
         strcpy(symmetric_btn->str, "Create Symmetric System");
+
+        symmetric_btn->selected = false;
+        *btn_ptr = symmetric_btn;
+        return;
     }
     else if (key == 8 && len > 0 && symmetric_btn->selected)
     {
@@ -516,6 +512,7 @@ void handle_symmetric_button(Button **btn_ptr, unsigned char key, Body ***bodies
     {
         symmetric_btn->str = char_cat(symmetric_btn->str, key);
     }
+    *btn_ptr = symmetric_btn;
 }
 
 void handle_modification_button(Button **btn_ptr, unsigned char key, Body ***bodies_ptr, int *body_count_ptr, int body_index)

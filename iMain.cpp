@@ -10,8 +10,8 @@ Button *custom_btn = create_button();
 Button *default_btn = create_button();
 Button *symmetric_btn = create_button();
 Button *modification_btn = create_button();
-Button *collection_btn = create_button();
-int mod_body_index = -1;
+Button *cluster_btn = create_button();
+int mod_body_index = NOT_FOUND;
 /*
 	function iDraw() is called again and again by the system.
 
@@ -32,7 +32,7 @@ void iDraw()
 	draw_button(*custom_btn);
 	draw_button(*default_btn);
 	draw_button(*symmetric_btn);
-	draw_button(*collection_btn);
+	draw_button(*cluster_btn);
 	if (modification_btn->selected)
 	{
 		draw_button(*modification_btn);
@@ -47,16 +47,15 @@ void iMouseMove(int mx, int my)
 {
 
 	index_left = find_body_from_mouse(bodies, body_count, mx, my);
-	if (index_left != -1)
+	if (index_left != NOT_FOUND)
 	{
 		bodies[index_left]->selected = true;
 	}
-	if (index_left != -1 && bodies[index_left]->selected)
+	if (index_left != NOT_FOUND && bodies[index_left]->selected)
 	{
 		bodies[index_left]->position.x = mx / SPACE_SCALE;
 		bodies[index_left]->position.y = my / SPACE_SCALE;
 		bodies[index_left]->selected = false;
-		printf("Moved %d, to %d, %d\n", index_left, mx, my);
 	}
 }
 
@@ -73,45 +72,35 @@ void iMouse(int button, int state, int mx, int my)
 		Body *body = create_body((rand() % WIDTH), (rand() % HEIGHT), 1, 16, rand() % vel_range, rand() % vel_range);
 		append_body(body, &bodies, &body_count);
 		default_btn->selected = false;
-		// running = false;
 	}
-	else if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && check_button_clicked(*collection_btn, mx, my))
+	else if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && check_button_clicked(*cluster_btn, mx, my))
 	{
 		int cluster_count = 10;
-		collection_btn->selected = true;
+		cluster_btn->selected = true;
 		int vel_range = 1000 + rand() % 5000;
 		for (int i = 0; i < cluster_count; i++)
 		{
 			Body *body = create_body((rand() % WIDTH), (rand() % HEIGHT), 1, 8, (rand() % vel_range) * pow(-1, rand() % 2), (rand() % vel_range) * pow(-1, rand() % 2));
 			append_body(body, &bodies, &body_count);
 		}
+		cluster_btn->selected = false;
 	}
 	else if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && check_button_clicked(*custom_btn, mx, my) && symmetric_btn->selected == false && modification_btn->selected == false)
 	{
 		strcpy(custom_btn->str, "");
 		custom_btn->selected = true;
-
-		symmetric_btn->selected = false;
-		modification_btn->selected = false;
 	}
 	else if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && check_button_clicked(*symmetric_btn, mx, my) && custom_btn->selected == false && modification_btn->selected == false)
 	{
 		strcpy(symmetric_btn->str, "");
 		symmetric_btn->selected = true;
-
-		custom_btn->selected = false;
-		modification_btn->selected = false;
 	}
 	else if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN && custom_btn->selected == false && symmetric_btn->selected == false)
 	{
 		mod_body_index = find_body_from_mouse(bodies, body_count, mx, my);
-		printf("%d\n", mod_body_index);
-		if (mod_body_index != -1)
+		if (mod_body_index != NOT_FOUND)
 		{
 			modification_btn->selected = true;
-			
-			symmetric_btn->selected = false;
-			custom_btn->selected = false;
 		}
 	}
 }
@@ -155,7 +144,7 @@ void iKeyboard(unsigned char key)
 		delete_all_bodies(&bodies, &body_count);
 		bodies = create_bodies(&body_count, file);
 	}
-	else if (isdigit(key) == false && key != 13 && key != 8 && key != ',')
+	else if (isdigit(key) == false && key != 13 && key != 8 && key != ',' && key != '-')
 	{
 		printf("Please enter digits, comma, newline etc.\n");
 		return;
@@ -177,19 +166,14 @@ void iKeyboard(unsigned char key)
 	*/
 void iSpecialKeyboard(unsigned char key)
 {
-
 	if (key == GLUT_KEY_END)
 	{
 		exit(0);
 	}
-	// place your codes for other keys here
 }
 
 int main()
 {
-	// place your own initialization codes here.
-	// iSetTimer(1000, iDraw);
-	collision_on = false;
 	running = true;
 	time_skip = false;
 	default_btn->position.y -= default_btn->dimensions.y;
@@ -198,8 +182,8 @@ int main()
 	symmetric_btn->position.y -= 2 * symmetric_btn->dimensions.y;
 	strcpy(symmetric_btn->str, "Create Symmetric System");
 
-	collection_btn->position.y -= 3 * collection_btn->dimensions.y;
-	strcpy(collection_btn->str, "Create Cluster");
+	cluster_btn->position.y -= 3 * cluster_btn->dimensions.y;
+	strcpy(cluster_btn->str, "Create Cluster");
 
 	modification_btn->dimensions.x = 250;
 	modification_btn->position.x = WIDTH / 2 - modification_btn->dimensions.x / 2;
